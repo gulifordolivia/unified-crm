@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ink: #0f1720;
+  --color-panel: rgba(11, 18, 28, 0.82);
+  --color-panel-strong: rgba(6, 12, 20, 0.96);
+  --color-line: rgba(163, 184, 255, 0.14);
+  --color-copy: #d7e1ea;
+  --color-muted: #8ea0b5;
+  --color-sand: #f5f7fb;
+  --color-teal: #6ee7d8;
+  --color-gold: #f7bf63;
+  --color-rose: #fb7185;
+  --color-sky: #7dd3fc;
+  --color-lime: #bef264;
+  --gradient-app:
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 32%),
+    radial-gradient(circle at top right, rgba(247, 191, 99, 0.18), transparent 28%),
+    linear-gradient(180deg, #111827 0%, #09111c 48%, #060b13 100%);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-ink);
+  --color-foreground: var(--color-sand);
+  --font-sans: "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "Menlo", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--gradient-app);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background: var(--gradient-app);
+  color: var(--color-copy);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(110, 231, 216, 0.28);
+  color: var(--color-sand);
+}
+
+.glass-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 32, 0.88) 0%,
+    rgba(9, 16, 25, 0.72) 100%
+  );
+  border: 1px solid var(--color-line);
+  box-shadow:
+    0 22px 70px rgba(2, 6, 23, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(18px);
+}
+
+.status-dot {
+  display: inline-flex;
+  height: 0.55rem;
+  width: 0.55rem;
+  border-radius: 999px;
+}
+
+.text-balance {
+  text-wrap: balance;
 }
