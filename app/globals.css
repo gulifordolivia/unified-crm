@@ -74,3 +74,15 @@ a {
 .text-balance {
   text-wrap: balance;
 }
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 1.5rem;
+  z-index: 0;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+}
