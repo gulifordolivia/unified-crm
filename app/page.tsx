@@ -58,6 +58,7 @@ type Lead = {
   county: string;
   phone: string;
   stage: string;
+  manualOverrideStage: string | null;
   auctionDate: string;
   score: number;
   status: string;
@@ -71,6 +72,7 @@ type Lead = {
   lng: number;
   manualRank: number;
   autoFollowUp: boolean;
+  postponed: boolean;
 };
 
 type Agent = {
@@ -106,7 +108,6 @@ type PreQuickAddForm = {
   phone: string;
   county: string;
   auctionDate: string;
-  stage: string;
   notes: string;
   autoFollowUp: boolean;
   customFollowUp: string;
@@ -125,11 +126,12 @@ type AgentQuickAddForm = {
 };
 
 const stages = [
-  "Final Push",
-  "Critical",
-  "High Urgency",
-  "Rising Urgency",
+  "Early Warning",
   "Low Urgency",
+  "Rising Urgency",
+  "High Urgency",
+  "Critical",
+  "Final Push",
   "Postponed",
   "Expired",
 ];
@@ -144,6 +146,7 @@ const startingLeads: Lead[] = [
     county: "Wayne",
     phone: "313-555-4001",
     stage: "Final Push",
+    manualOverrideStage: null,
     auctionDate: "2026-04-25",
     score: 14,
     status: "No Answer",
@@ -161,6 +164,7 @@ const startingLeads: Lead[] = [
     lng: -83.0635,
     manualRank: 0,
     autoFollowUp: true,
+    postponed: false,
   },
   {
     id: 2,
@@ -169,6 +173,7 @@ const startingLeads: Lead[] = [
     county: "Wayne",
     phone: "313-555-2202",
     stage: "Rising Urgency",
+    manualOverrideStage: null,
     auctionDate: "2026-05-09",
     score: 8,
     status: "Interested",
@@ -182,6 +187,7 @@ const startingLeads: Lead[] = [
     lng: -83.0174,
     manualRank: 0,
     autoFollowUp: false,
+    postponed: false,
   },
   {
     id: 3,
@@ -190,6 +196,7 @@ const startingLeads: Lead[] = [
     county: "Macomb",
     phone: "586-555-9090",
     stage: "Postponed",
+    manualOverrideStage: null,
     auctionDate: "2026-05-03",
     score: 15,
     status: "Left Voicemail",
@@ -206,6 +213,7 @@ const startingLeads: Lead[] = [
     lng: -82.9364,
     manualRank: 0,
     autoFollowUp: true,
+    postponed: true,
   },
   {
     id: 4,
@@ -214,6 +222,7 @@ const startingLeads: Lead[] = [
     county: "Macomb",
     phone: "586-555-0044",
     stage: "Expired",
+    manualOverrideStage: null,
     auctionDate: "2026-04-20",
     score: 3,
     status: "Could not reach",
@@ -227,6 +236,7 @@ const startingLeads: Lead[] = [
     lng: -83.0302,
     manualRank: 0,
     autoFollowUp: false,
+    postponed: false,
   },
   {
     id: 5,
@@ -235,6 +245,7 @@ const startingLeads: Lead[] = [
     county: "Macomb",
     phone: "586-555-4499",
     stage: "Critical",
+    manualOverrideStage: null,
     auctionDate: "2026-04-29",
     score: 12,
     status: "Maybe Interested",
@@ -248,6 +259,7 @@ const startingLeads: Lead[] = [
     lng: -83.0147,
     manualRank: 0,
     autoFollowUp: true,
+    postponed: false,
   },
 ];
 
@@ -315,22 +327,24 @@ const startingAgents: Agent[] = [
 ];
 
 const stageWeights: Record<string, number> = {
-  "Final Push": 7,
-  Critical: 6,
+  "Early Warning": 8,
+  "Low Urgency": 7,
+  "Rising Urgency": 6,
   "High Urgency": 5,
-  "Rising Urgency": 4,
-  "Low Urgency": 3,
+  Critical: 4,
+  "Final Push": 3,
   Postponed: 2,
   Expired: 1,
 };
 
 function stageStyle(stage: string) {
-  if (stage === "Final Push") return "bg-red-100 text-red-700";
-  if (stage === "Critical") return "bg-orange-100 text-orange-700";
-  if (stage === "High Urgency") return "bg-amber-100 text-amber-800";
-  if (stage === "Postponed") return "bg-purple-100 text-purple-700";
-  if (stage === "Rising Urgency") return "bg-blue-100 text-blue-700";
+  if (stage === "Early Warning") return "bg-teal-100 text-teal-700";
   if (stage === "Low Urgency") return "bg-emerald-100 text-emerald-700";
+  if (stage === "Rising Urgency") return "bg-blue-100 text-blue-700";
+  if (stage === "High Urgency") return "bg-amber-100 text-amber-800";
+  if (stage === "Critical") return "bg-orange-100 text-orange-700";
+  if (stage === "Final Push") return "bg-red-100 text-red-700";
+  if (stage === "Postponed") return "bg-purple-100 text-purple-700";
   if (stage === "Expired") return "bg-zinc-200 text-zinc-700";
   return "bg-zinc-100 text-zinc-700";
 }
@@ -403,20 +417,30 @@ function scheduleFollowUp(status: string, baseDate: string) {
   return addDays(baseDate, 3);
 }
 
-function sortLeadsForPipeline(a: Lead, b: Lead) {
-  if (a.manualRank !== b.manualRank) {
-    return b.manualRank - a.manualRank;
-  }
+function getAutoStage(lead: Lead) {
+  if (lead.postponed || lead.stage === "Postponed") return "Postponed";
+  const daysUntilAuction = differenceInDays(lead.auctionDate);
+  if (daysUntilAuction < 0) return "Expired";
+  if (daysUntilAuction <= 2) return "Final Push";
+  if (daysUntilAuction <= 6) return "Critical";
+  if (daysUntilAuction <= 13) return "High Urgency";
+  if (daysUntilAuction <= 29) return "Rising Urgency";
+  if (daysUntilAuction <= 59) return "Low Urgency";
+  return "Early Warning";
+}
 
+function getLeadStage(lead: Lead) {
+  return lead.manualOverrideStage ?? getAutoStage(lead);
+}
+
+function sortLeadsForPipeline(a: Lead, b: Lead) {
+  const scoreDiff = b.score - a.score;
+  if (scoreDiff !== 0) return scoreDiff;
   const auctionDiff =
     new Date(`${a.auctionDate}T12:00:00`).getTime() -
     new Date(`${b.auctionDate}T12:00:00`).getTime();
   if (auctionDiff !== 0) return auctionDiff;
-
-  const stageDiff = (stageWeights[b.stage] ?? 0) - (stageWeights[a.stage] ?? 0);
-  if (stageDiff !== 0) return stageDiff;
-
-  return b.score - a.score;
+  return (stageWeights[getLeadStage(a)] ?? 0) - (stageWeights[getLeadStage(b)] ?? 0);
 }
 
 function buildTimeline(lead: Lead) {
@@ -488,7 +512,6 @@ export default function OptimizedUnifiedCrmPreview() {
     phone: "",
     county: "",
     auctionDate: "",
-    stage: "Rising Urgency",
     notes: "",
     autoFollowUp: true,
     customFollowUp: "",
@@ -508,6 +531,7 @@ export default function OptimizedUnifiedCrmPreview() {
   const [agentSortBy, setAgentSortBy] = useState<"alphabetical" | "recent">("alphabetical");
   const [agentMarketFilter, setAgentMarketFilter] = useState("All markets");
   const sequenceRef = useRef(1000);
+  const leadDetailRef = useRef<HTMLDivElement | null>(null);
 
   const nextSequence = () => {
     sequenceRef.current += 1;
@@ -524,7 +548,7 @@ export default function OptimizedUnifiedCrmPreview() {
   const filteredLeads = useMemo(() => {
     const q = search.toLowerCase();
     return leads.filter((lead) =>
-      [lead.name, lead.address, lead.county, lead.stage, lead.status]
+      [lead.name, lead.address, lead.county, getLeadStage(lead), lead.status]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -545,7 +569,7 @@ export default function OptimizedUnifiedCrmPreview() {
   const groupedStageLeads = useMemo(() => {
     return stages.map((stage) => ({
       stage,
-      items: [...filteredLeads].filter((lead) => lead.stage === stage).sort(sortLeadsForPipeline),
+      items: [...filteredLeads].filter((lead) => getLeadStage(lead) === stage).sort(sortLeadsForPipeline),
     }));
   }, [filteredLeads]);
 
@@ -612,7 +636,9 @@ export default function OptimizedUnifiedCrmPreview() {
     const manualRank = nextSequence();
     updateLead(draggedLeadId, {
       stage,
-      status: `Moved to ${stage}`,
+      manualOverrideStage: stage,
+      postponed: stage === "Postponed",
+      status: `Manual override: ${stage}`,
       manualRank,
     });
     setDraggedLeadId(null);
@@ -628,13 +654,15 @@ export default function OptimizedUnifiedCrmPreview() {
     }
 
     const today = getTodayDate();
+    const leadId = nextSequence();
     const newLead: Lead = {
-      id: Date.now(),
+      id: leadId,
       name: "New Owner",
       address,
       county: "Unknown",
       phone: "",
       stage,
+      manualOverrideStage: stage,
       auctionDate: addDays(today, 12),
       score: stage === "Final Push" ? 10 : 6,
       status: "Not contacted",
@@ -646,8 +674,9 @@ export default function OptimizedUnifiedCrmPreview() {
       texts: 0,
       lat: 42.3314,
       lng: -83.0458,
-      manualRank: Date.now(),
+      manualRank: nextSequence(),
       autoFollowUp: true,
+      postponed: stage === "Postponed",
     };
     setLeads((curr) => [newLead, ...curr]);
     setSelectedLeadId(newLead.id);
@@ -667,28 +696,31 @@ export default function OptimizedUnifiedCrmPreview() {
 
     const today = getTodayDate();
     const scheduledFollowUp = preQuickAdd.customFollowUp || (preQuickAdd.autoFollowUp ? addDays(today, 10) : "");
+    const leadId = nextSequence();
     const newLead: Lead = {
-      id: Date.now(),
+      id: leadId,
       name: preQuickAdd.ownerName.trim() || "New Owner",
       address,
       county: preQuickAdd.county.trim() || "Unknown",
       phone: preQuickAdd.phone.trim(),
-      stage: preQuickAdd.stage,
+      stage: "Early Warning",
+      manualOverrideStage: null,
       auctionDate: preQuickAdd.auctionDate || addDays(today, 14),
-      score: preQuickAdd.stage === "Final Push" ? 12 : preQuickAdd.stage === "Critical" ? 10 : 7,
+      score: 7,
       status: "Not contacted",
       notes: preQuickAdd.notes.trim() || "Manually added preforeclosure lead.",
       createdAt: today,
       nextFollowUp: scheduledFollowUp || today,
       followUps: scheduledFollowUp
-        ? [{ id: `pre-${Date.now()}`, date: scheduledFollowUp, label: "Scheduled", completed: false }]
+        ? [{ id: `pre-${nextSequence()}`, date: scheduledFollowUp, label: "Scheduled", completed: false }]
         : [],
       calls: 0,
       texts: 0,
       lat: 42.3485,
       lng: -83.0912,
-      manualRank: Date.now(),
+      manualRank: 0,
       autoFollowUp: preQuickAdd.autoFollowUp,
+      postponed: false,
     };
 
     setLeads((curr) => [newLead, ...curr]);
@@ -699,7 +731,6 @@ export default function OptimizedUnifiedCrmPreview() {
       phone: "",
       county: "",
       auctionDate: "",
-      stage: "Rising Urgency",
       notes: "",
       autoFollowUp: true,
       customFollowUp: "",
@@ -744,7 +775,7 @@ export default function OptimizedUnifiedCrmPreview() {
       nextFollowUp: dateValue,
       followUps: [
         ...followUps,
-        { id: `custom-${Date.now()}`, date: dateValue, label: "Custom follow-up", completed: false },
+        { id: `custom-${nextSequence()}`, date: dateValue, label: "Custom follow-up", completed: false },
       ],
     });
   };
@@ -767,7 +798,7 @@ export default function OptimizedUnifiedCrmPreview() {
     const today = getTodayDate();
     const scheduled = agentQuickAdd.customFollowUp || (agentQuickAdd.autoFollowUp ? addDays(today, 10) : null);
     const newAgent: Agent = {
-      id: Date.now(),
+      id: nextSequence(),
       name: agentQuickAdd.name.trim(),
       phone: agentQuickAdd.phone.trim(),
       market: agentQuickAdd.market.trim() || "Unknown market",
@@ -885,7 +916,7 @@ export default function OptimizedUnifiedCrmPreview() {
                   ? "Search agents, market, notes..."
                   : mode === "map"
                     ? "Search lead names, addresses, counties..."
-                    : "Search name, address, county, stage..."
+                    : "Search name, address, county, urgency..."
               }
               className={`h-12 rounded-2xl pl-10 ${inputTheme}`}
             />
@@ -914,7 +945,7 @@ export default function OptimizedUnifiedCrmPreview() {
               />
               <Metric
                 title="Postponed"
-                value={leads.filter((lead) => lead.stage === "Postponed").length}
+                value={leads.filter((lead) => getLeadStage(lead) === "Postponed").length}
                 sub="important reopen leads"
                 icon={CalendarDays}
                 dark={theme === "dark"}
@@ -929,7 +960,7 @@ export default function OptimizedUnifiedCrmPreview() {
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[290px,1fr,400px]">
-              <div className="grid gap-5">
+              <div className="order-1 grid gap-5">
                 <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -945,7 +976,13 @@ export default function OptimizedUnifiedCrmPreview() {
                       dailyQueue.map((item) => (
                         <button
                           key={item.id}
-                          onClick={() => setSelectedLeadId(item.id)}
+                          onClick={() => {
+                            setSelectedLeadId(item.id);
+                            leadDetailRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                          }}
                           className={`w-full rounded-2xl border p-3 text-left transition hover:border-blue-400 ${
                             selectedLeadId === item.id
                               ? "border-blue-500 ring-2 ring-blue-100"
@@ -956,7 +993,7 @@ export default function OptimizedUnifiedCrmPreview() {
                         >
                           <div className="font-medium">{item.name}</div>
                           <div className={`text-xs ${mutedText}`}>
-                            {item.stage} • Score {item.score}
+                            {getLeadStage(item)} • Score {item.score}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-2">
                             <span className={`rounded-xl px-2 py-1 text-xs ${softPanel}`}>
@@ -976,8 +1013,8 @@ export default function OptimizedUnifiedCrmPreview() {
                   <CardHeader>
                     <CardTitle>Preforeclosure Quick Add</CardTitle>
                     <p className={`text-sm ${mutedText}`}>
-                      Add distressed-property leads with scheduling controls and duplicate
-                      protection.
+                      Add distressed-property leads with duplicate protection. Urgency updates
+                      automatically from auction timing, follow-up timing, and lead score.
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -1016,32 +1053,32 @@ export default function OptimizedUnifiedCrmPreview() {
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        type="date"
-                        value={preQuickAdd.auctionDate}
-                        onChange={(event) =>
-                          setPreQuickAdd((curr) => ({ ...curr, auctionDate: event.target.value }))
-                        }
-                        className={`rounded-2xl ${inputTheme}`}
-                      />
-                      <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
-                        <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
-                          Stage
-                        </label>
-                        <select
-                          value={preQuickAdd.stage}
+                      <label className="space-y-2 text-sm">
+                        <span className={`block text-xs font-semibold uppercase tracking-[0.16em] ${mutedText}`}>
+                          Auction Date
+                        </span>
+                        <Input
+                          type="date"
+                          value={preQuickAdd.auctionDate}
                           onChange={(event) =>
-                            setPreQuickAdd((curr) => ({ ...curr, stage: event.target.value }))
+                            setPreQuickAdd((curr) => ({ ...curr, auctionDate: event.target.value }))
                           }
-                          className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
-                        >
-                          {stages.map((stage) => (
-                            <option key={stage} value={stage} className="text-zinc-950">
-                              {stage}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                          className={`rounded-2xl ${inputTheme}`}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm">
+                        <span className={`block text-xs font-semibold uppercase tracking-[0.16em] ${mutedText}`}>
+                          Next Follow-Up Date
+                        </span>
+                        <Input
+                          type="date"
+                          value={preQuickAdd.customFollowUp}
+                          onChange={(event) =>
+                            setPreQuickAdd((curr) => ({ ...curr, customFollowUp: event.target.value }))
+                          }
+                          className={`rounded-2xl ${inputTheme}`}
+                        />
+                      </label>
                     </div>
                     <div className={`rounded-2xl border p-3 ${softPanel}`}>
                       <div className="flex items-center justify-between gap-3">
@@ -1071,8 +1108,8 @@ export default function OptimizedUnifiedCrmPreview() {
                         >
                           <CalendarClock className="h-4 w-4" />
                           {preQuickAdd.customFollowUp
-                            ? `Follow-up ${formatDate(preQuickAdd.customFollowUp)}`
-                            : "Custom follow-up"}
+                            ? `Next Follow-Up Date ${formatDate(preQuickAdd.customFollowUp)}`
+                            : "Reveal Next Follow-Up Date"}
                         </Button>
                         {preQuickAdd.showCalendar && (
                           <Input
@@ -1104,14 +1141,14 @@ export default function OptimizedUnifiedCrmPreview() {
                 </Card>
               </div>
 
-              <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+              <Card className={`order-3 rounded-3xl shadow-sm xl:order-2 ${panelTheme}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <CardTitle>Urgency pipeline</CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>
-                        Auto-sorted by auction date, urgency, and score. Dragging a card manually
-                        overrides the default order.
+                        Auto-sorted by auction date, urgency band, and score. Dragging a card creates
+                        a manual override.
                       </p>
                     </div>
                     <Badge className="bg-red-100 text-red-700">Drag & drop ready</Badge>
@@ -1155,7 +1192,13 @@ export default function OptimizedUnifiedCrmPreview() {
                               key={lead.id}
                               draggable
                               onDragStart={() => setDraggedLeadId(lead.id)}
-                              onClick={() => setSelectedLeadId(lead.id)}
+                              onClick={() => {
+                                setSelectedLeadId(lead.id);
+                                leadDetailRef.current?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                });
+                              }}
                               className={`w-full cursor-grab rounded-2xl border p-3 text-left transition hover:border-blue-400 hover:shadow-sm active:cursor-grabbing ${
                                 selectedLeadId === lead.id
                                   ? "border-blue-500 ring-2 ring-blue-100"
@@ -1165,9 +1208,16 @@ export default function OptimizedUnifiedCrmPreview() {
                               }`}
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <div className="font-medium">{lead.name}</div>
-                                <Badge className="bg-zinc-100 text-zinc-700">{lead.score}</Badge>
-                              </div>
+                                  <div className="font-medium">{lead.name}</div>
+                                  <div className="flex items-center gap-2">
+                                    {lead.manualOverrideStage && (
+                                      <Badge className="bg-indigo-100 text-indigo-700">
+                                        Manual override
+                                      </Badge>
+                                    )}
+                                    <Badge className="bg-zinc-100 text-zinc-700">{lead.score}</Badge>
+                                  </div>
+                                </div>
                               <div className={`mt-1 text-xs ${mutedText}`}>{lead.address}</div>
                               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                 <span className={`rounded-full px-2 py-1 ${softPanel}`}>
@@ -1193,14 +1243,31 @@ export default function OptimizedUnifiedCrmPreview() {
                 </CardContent>
               </Card>
 
-              <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+              <div
+                ref={leadDetailRef}
+                className={`order-2 xl:order-3`}
+              >
+              <Card
+                className={`rounded-3xl shadow-sm ring-2 ring-offset-2 ${
+                  theme === "dark"
+                    ? "ring-blue-500/70 ring-offset-zinc-950"
+                    : "ring-blue-200 ring-offset-zinc-100"
+                } xl:sticky xl:top-5 ${panelTheme}`}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <CardTitle>{selectedLead.name}</CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>{selectedLead.address}</p>
                     </div>
-                    <Badge className={stageStyle(selectedLead.stage)}>{selectedLead.stage}</Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge className={stageStyle(getLeadStage(selectedLead))}>
+                        {getLeadStage(selectedLead)}
+                      </Badge>
+                      {selectedLead.manualOverrideStage && (
+                        <span className="text-xs font-medium text-indigo-500">Manual override</span>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1340,7 +1407,7 @@ export default function OptimizedUnifiedCrmPreview() {
                           followUps: [
                             ...selectedLead.followUps,
                             {
-                              id: `text-${Date.now()}`,
+                              id: `text-${nextSequence()}`,
                               date: addDays(getTodayDate(), 2),
                               label: "Text follow-up",
                               completed: false,
@@ -1361,7 +1428,7 @@ export default function OptimizedUnifiedCrmPreview() {
                           followUps: [
                             ...selectedLead.followUps,
                             {
-                              id: `today-${Date.now()}`,
+                              id: `today-${nextSequence()}`,
                               date: getTodayDate(),
                               label: "Due today",
                               completed: false,
@@ -1395,6 +1462,7 @@ export default function OptimizedUnifiedCrmPreview() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </div>
           </>
         )}
