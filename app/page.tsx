@@ -652,8 +652,8 @@ export default function OptimizedUnifiedCrmPreview() {
 
   const pageTheme =
     theme === "dark"
-      ? "min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,_#26334f,_#09090b_58%)] p-3 text-zinc-100 md:p-6"
-      : "min-h-screen overflow-x-hidden bg-zinc-100 p-3 text-zinc-950 md:p-6";
+      ? "min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_top,_#26334f,_#09090b_58%)] p-3 text-zinc-100 md:p-6"
+      : "min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-100 p-3 text-zinc-950 md:p-6";
   const panelTheme = theme === "dark" ? "border-white/10 bg-zinc-900/85 text-zinc-100" : "bg-white";
   const mutedText = theme === "dark" ? "text-zinc-400" : "text-zinc-500";
   const inputTheme =
@@ -865,7 +865,7 @@ export default function OptimizedUnifiedCrmPreview() {
 
   return (
     <div className={pageTheme}>
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="mx-auto w-full max-w-7xl overflow-x-hidden space-y-5">
         {duplicateWarning && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
@@ -1624,32 +1624,32 @@ export default function OptimizedUnifiedCrmPreview() {
               <Metric title="Auto 10-Day" value={agents.filter((agent) => agent.autoFollowUp).length} sub="recurring check-ins" icon={ListChecks} dark={theme === "dark"} />
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[270px,1fr]">
-              <div className="grid min-w-0 gap-5">
-                <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
-                  <CardHeader>
+            <div className="grid w-full max-w-full min-w-0 gap-5 overflow-x-hidden xl:grid-cols-[minmax(0,270px),minmax(0,1fr)]">
+              <div className="grid w-full max-w-full min-w-0 gap-5">
+                <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                  <CardHeader className="p-4 sm:p-6">
                     <CardTitle>Agent Quick Add</CardTitle>
                     <p className={`text-sm ${mutedText}`}>
                       Add directory contacts with reusable follow-up controls.
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
                     <Input
                       value={agentQuickAdd.name}
                       onChange={(event) =>
                         setAgentQuickAdd((curr) => ({ ...curr, name: event.target.value }))
                       }
                       placeholder="Agent name"
-                      className={`rounded-2xl ${inputTheme}`}
+                      className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
                     />
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         value={agentQuickAdd.phone}
                         onChange={(event) =>
                           setAgentQuickAdd((curr) => ({ ...curr, phone: event.target.value }))
                         }
                         placeholder="Phone"
-                        className={`rounded-2xl ${inputTheme}`}
+                        className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
                       />
                       <Input
                         value={agentQuickAdd.market}
@@ -1657,10 +1657,10 @@ export default function OptimizedUnifiedCrmPreview() {
                           setAgentQuickAdd((curr) => ({ ...curr, market: event.target.value }))
                         }
                         placeholder="County / market"
-                        className={`rounded-2xl ${inputTheme}`}
+                        className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
                       />
                     </div>
-                    <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                    <div className={`w-full max-w-full min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
                       <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                         Contact type
                       </label>
@@ -1669,7 +1669,7 @@ export default function OptimizedUnifiedCrmPreview() {
                         onChange={(event) =>
                           setAgentQuickAdd((curr) => ({ ...curr, type: event.target.value }))
                         }
-                        className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                        className={`w-full min-w-0 max-w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
                       >
                         {["Agent", "Wholesaler", "Investor", "Lender"].map((option) => (
                           <option key={option} value={option} className="text-zinc-950">
@@ -1678,7 +1678,7 @@ export default function OptimizedUnifiedCrmPreview() {
                         ))}
                       </select>
                     </div>
-                    <div className={`rounded-2xl border p-3 ${softPanel}`}>
+                    <div className={`w-full max-w-full min-w-0 rounded-2xl border p-3 ${softPanel}`}>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <div className="text-sm font-medium">Automatic follow-up every 10 days</div>
@@ -1719,7 +1719,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                 customFollowUp: event.target.value,
                               }))
                             }
-                            className={`w-full rounded-2xl ${inputTheme}`}
+                            className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
                           />
                         )}
                       </div>
@@ -1729,29 +1729,29 @@ export default function OptimizedUnifiedCrmPreview() {
                       onChange={(event) =>
                         setAgentQuickAdd((curr) => ({ ...curr, notes: event.target.value }))
                       }
-                      className={`min-h-[110px] w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
+                      className={`min-h-[110px] w-full min-w-0 max-w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
                       placeholder="Notes"
                     />
-                    <Button className="w-full rounded-2xl" onClick={addAgent}>
+                    <Button className="w-full max-w-full rounded-2xl" onClick={addAgent}>
                       Add Agent
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
-                  <CardHeader>
+                <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                  <CardHeader className="p-4 sm:p-6">
                     <CardTitle>Directory index</CardTitle>
                     <p className={`text-sm ${mutedText}`}>
                       Jump by first letter and browse the directory quickly.
                     </p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto pb-2 xl:mx-0 xl:flex-col xl:overflow-visible">
+                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                    <div className="flex w-full max-w-full gap-2 overflow-x-auto pb-2 xl:flex-col xl:overflow-visible">
                       {alphabet.map((letter) => (
                         <Button
                           key={letter}
                           variant="outline"
-                          className={`h-9 shrink-0 rounded-2xl px-3 ${outlineTheme}`}
+                          className={`h-9 shrink-0 rounded-2xl px-3 xl:w-full ${outlineTheme}`}
                           onClick={() =>
                             document
                               .getElementById(`agent-letter-${letter}`)
@@ -1766,8 +1766,8 @@ export default function OptimizedUnifiedCrmPreview() {
                 </Card>
               </div>
 
-              <Card className={`min-w-0 rounded-3xl shadow-sm ${panelTheme}`}>
-                <CardHeader>
+              <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                <CardHeader className="p-4 sm:p-6">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                       <CardTitle>Alphabetical agent directory</CardTitle>
@@ -1776,8 +1776,8 @@ export default function OptimizedUnifiedCrmPreview() {
                         dashboard.
                       </p>
                     </div>
-                    <div className="grid max-w-full gap-2 sm:grid-cols-2">
-                      <div className={`min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                    <div className="grid grid-cols-1 max-w-full gap-2 sm:grid-cols-2">
+                      <div className={`w-full max-w-full min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
                         <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                           Sort
                         </label>
@@ -1796,7 +1796,7 @@ export default function OptimizedUnifiedCrmPreview() {
                           </option>
                         </select>
                       </div>
-                      <div className={`min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <div className={`w-full max-w-full min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
                         <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                           Market
                         </label>
@@ -1815,7 +1815,7 @@ export default function OptimizedUnifiedCrmPreview() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
                   <div className="grid min-w-0 gap-6 lg:grid-cols-[72px,minmax(0,1fr)]">
                     <div className="hidden lg:flex lg:flex-col lg:gap-2">
                       {alphabet.map((letter) => (
@@ -1835,7 +1835,7 @@ export default function OptimizedUnifiedCrmPreview() {
 
                     <div className="min-w-0 space-y-6">
                       {agentDirectory.map((group) => (
-                        <section key={group.letter} id={`agent-letter-${group.letter}`} className="min-w-0 space-y-3">
+                        <section key={group.letter} id={`agent-letter-${group.letter}`} className="w-full max-w-full min-w-0 space-y-3">
                           <div className="flex items-center gap-3">
                             <div className="text-2xl font-bold">{group.letter}</div>
                             <div className={`h-px flex-1 ${theme === "dark" ? "bg-white/10" : "bg-zinc-200"}`} />
@@ -1843,7 +1843,7 @@ export default function OptimizedUnifiedCrmPreview() {
                           <div className="grid gap-3">
                             {group.items.map((agent) => (
                               <Card key={agent.id} className={`min-w-0 overflow-hidden rounded-3xl shadow-sm ${theme === "dark" ? "border-white/10 bg-zinc-950/70" : "bg-white"}`}>
-                                <CardContent className="p-5">
+                                <CardContent className="p-4 sm:p-5">
                                   <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                     <div className="min-w-0 space-y-2">
                                       <div className="truncate text-lg font-semibold">{agent.name}</div>
@@ -1867,7 +1867,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="grid w-full shrink-0 gap-2 sm:w-auto sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
+                                    <div className="grid w-full max-w-full min-w-0 shrink-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
                                       <Badge
                                         className={
                                           agent.nextFollowUp && differenceInDays(agent.nextFollowUp) <= 0
@@ -1877,16 +1877,16 @@ export default function OptimizedUnifiedCrmPreview() {
                                       >
                                         {dueLabel(agent.nextFollowUp)}
                                       </Badge>
-                                      <Button variant="outline" className={`w-full rounded-2xl sm:w-auto ${outlineTheme}`}>
+                                      <Button variant="outline" className={`w-full max-w-full rounded-2xl sm:w-auto ${outlineTheme}`}>
                                         <Phone className="mr-2 h-4 w-4" />
                                         Call
                                       </Button>
-                                      <Button className="w-full rounded-2xl sm:w-auto" onClick={() => logAgentFollowUp(agent)}>
+                                      <Button className="w-full max-w-full rounded-2xl sm:w-auto" onClick={() => logAgentFollowUp(agent)}>
                                         Log Follow-Up
                                       </Button>
                                       <Button
                                         variant="outline"
-                                        className={`w-full rounded-2xl sm:w-auto ${outlineTheme}`}
+                                        className={`w-full max-w-full rounded-2xl sm:w-auto ${outlineTheme}`}
                                         onClick={() =>
                                           setAgents((curr) => curr.filter((item) => item.id !== agent.id))
                                         }
