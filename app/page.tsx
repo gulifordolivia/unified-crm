@@ -15,14 +15,12 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  FileWarning,
   Flame,
   Home,
   ListChecks,
   Mail,
   MapPin,
   Moon,
-  PanelRightOpen,
   Phone,
   Plus,
   Route,
@@ -124,6 +122,8 @@ type AgentQuickAddForm = {
   customFollowUp: string;
   showCalendar: boolean;
 };
+
+type PreMetricFilter = "total" | "dueToday" | "auctionSoon" | "postponed" | null;
 
 const stages = [
   "Early Warning",
@@ -530,6 +530,11 @@ export default function OptimizedUnifiedCrmPreview() {
   const [leadCalendarOpen, setLeadCalendarOpen] = useState(false);
   const [agentSortBy, setAgentSortBy] = useState<"alphabetical" | "recent">("alphabetical");
   const [agentMarketFilter, setAgentMarketFilter] = useState("All markets");
+  const [preMetricFilter, setPreMetricFilter] = useState<PreMetricFilter>(null);
+  const [preMetricSortBy, setPreMetricSortBy] = useState<"alphabetical" | "recent">(
+    "alphabetical",
+  );
+  const [preMetricCountyFilter, setPreMetricCountyFilter] = useState("All counties");
   const sequenceRef = useRef(1000);
   const leadDetailRef = useRef<HTMLDivElement | null>(null);
 
@@ -572,6 +577,40 @@ export default function OptimizedUnifiedCrmPreview() {
       items: [...filteredLeads].filter((lead) => getLeadStage(lead) === stage).sort(sortLeadsForPipeline),
     }));
   }, [filteredLeads]);
+
+  const preMetricCountyOptions = useMemo(
+    () => ["All counties", ...new Set(leads.map((lead) => lead.county))],
+    [leads],
+  );
+
+  const preMetricLeads = useMemo(() => {
+    let items = [...leads];
+
+    if (preMetricFilter === "dueToday") {
+      items = items.filter((lead) => lead.nextFollowUp && differenceInDays(lead.nextFollowUp) <= 0);
+    } else if (preMetricFilter === "auctionSoon") {
+      items = items.filter((lead) => {
+        const days = differenceInDays(lead.auctionDate);
+        return days >= 0 && days < 7;
+      });
+    } else if (preMetricFilter === "postponed") {
+      items = items.filter((lead) => getLeadStage(lead) === "Postponed");
+    }
+
+    if (preMetricCountyFilter !== "All counties") {
+      items = items.filter((lead) => lead.county === preMetricCountyFilter);
+    }
+
+    return items.sort((a, b) => {
+      if (preMetricSortBy === "recent") {
+        return (
+          new Date(`${b.createdAt}T12:00:00`).getTime() -
+          new Date(`${a.createdAt}T12:00:00`).getTime()
+        );
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [leads, preMetricCountyFilter, preMetricFilter, preMetricSortBy]);
 
   const filteredAgents = useMemo(() => {
     const q = search.toLowerCase();
@@ -905,7 +944,7 @@ export default function OptimizedUnifiedCrmPreview() {
           </div>
         </motion.div>
 
-        <div className="grid gap-3 md:grid-cols-[1fr,190px,190px]">
+        <div className="grid gap-3">
           <div className="relative">
             <Search className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${mutedText}`} />
             <Input
@@ -921,43 +960,152 @@ export default function OptimizedUnifiedCrmPreview() {
               className={`h-12 rounded-2xl pl-10 ${inputTheme}`}
             />
           </div>
-          <Button variant="outline" className={`h-12 rounded-2xl ${outlineTheme}`}>
-            <ListChecks className="mr-2 h-4 w-4" />
-            Today Queue
-          </Button>
-          <Button variant="outline" className={`h-12 rounded-2xl ${outlineTheme}`}>
-            <PanelRightOpen className="mr-2 h-4 w-4" />
-            Focus View
-          </Button>
         </div>
 
         {mode === "pre" && (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Metric title="Total Leads" value={leads.length} sub="active records" icon={Home} dark={theme === "dark"} />
-              <Metric title="Due Today" value={dailyQueue.length} sub="sticky priority queue" icon={Bell} hot />
-              <Metric
-                title="Auction ≤ 7 Days"
-                value={leads.filter((lead) => differenceInDays(lead.auctionDate) <= 7).length}
-                sub="highest urgency"
-                icon={Flame}
-                hot
-              />
-              <Metric
-                title="Postponed"
-                value={leads.filter((lead) => getLeadStage(lead) === "Postponed").length}
-                sub="important reopen leads"
-                icon={CalendarDays}
-                dark={theme === "dark"}
-              />
-              <Metric
-                title="Duplicates Blocked"
-                value={duplicateWarning ? 1 : 11}
-                sub="clean database"
-                icon={FileWarning}
-                dark={theme === "dark"}
-              />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <button type="button" onClick={() => setPreMetricFilter("total")} className="text-left">
+                <Metric
+                  title="Total Leads"
+                  value={leads.length}
+                  sub="active records"
+                  icon={Home}
+                  dark={theme === "dark"}
+                />
+              </button>
+              <button type="button" onClick={() => setPreMetricFilter("dueToday")} className="text-left">
+                <Metric title="Due Today" value={dailyQueue.length} sub="sticky priority queue" icon={Bell} hot />
+              </button>
+              <button type="button" onClick={() => setPreMetricFilter("auctionSoon")} className="text-left">
+                <Metric
+                  title="Auctions < 7 Days"
+                  value={leads.filter((lead) => {
+                    const days = differenceInDays(lead.auctionDate);
+                    return days >= 0 && days < 7;
+                  }).length}
+                  sub="highest urgency"
+                  icon={Flame}
+                  hot
+                />
+              </button>
+              <button type="button" onClick={() => setPreMetricFilter("postponed")} className="text-left">
+                <Metric
+                  title="Postponed"
+                  value={leads.filter((lead) => getLeadStage(lead) === "Postponed").length}
+                  sub="important reopen leads"
+                  icon={CalendarDays}
+                  dark={theme === "dark"}
+                />
+              </button>
             </div>
+
+            {preMetricFilter && (
+              <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <CardTitle>
+                        {preMetricFilter === "total" && "All Leads"}
+                        {preMetricFilter === "dueToday" && "Due Today"}
+                        {preMetricFilter === "auctionSoon" && "Auctions < 7 Days"}
+                        {preMetricFilter === "postponed" && "Postponed Leads"}
+                      </CardTitle>
+                      <p className={`mt-1 text-sm ${mutedText}`}>
+                        Click a lead to jump to the detail panel.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className={`rounded-2xl ${outlineTheme}`}
+                      onClick={() => setPreMetricFilter(null)}
+                    >
+                      Clear Filter
+                    </Button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
+                        Sort
+                      </label>
+                      <select
+                        value={preMetricSortBy}
+                        onChange={(event) =>
+                          setPreMetricSortBy(event.target.value as "alphabetical" | "recent")
+                        }
+                        className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                      >
+                        <option value="alphabetical" className="text-zinc-950">
+                          Alphabetically by owner name
+                        </option>
+                        <option value="recent" className="text-zinc-950">
+                          Most recently added
+                        </option>
+                      </select>
+                    </div>
+                    <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
+                        County
+                      </label>
+                      <select
+                        value={preMetricCountyFilter}
+                        onChange={(event) => setPreMetricCountyFilter(event.target.value)}
+                        className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                      >
+                        {preMetricCountyOptions.map((county) => (
+                          <option key={county} value={county} className="text-zinc-950">
+                            {county}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {preMetricLeads.map((lead) => (
+                      <button
+                        key={lead.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedLeadId(lead.id);
+                          leadDetailRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        }}
+                        className={`rounded-2xl border p-4 text-left transition hover:border-blue-400 ${
+                          selectedLeadId === lead.id
+                            ? "border-blue-500 ring-2 ring-blue-100"
+                            : theme === "dark"
+                              ? "border-white/10 bg-zinc-950/70"
+                              : "bg-white"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold">{lead.name}</div>
+                            <div className={`mt-1 text-sm ${mutedText}`}>{lead.address}</div>
+                          </div>
+                          <Badge className={stageStyle(getLeadStage(lead))}>{getLeadStage(lead)}</Badge>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <span className={`rounded-full px-3 py-1 ${softPanel}`}>{lead.county}</span>
+                          <span className={`rounded-full px-3 py-1 ${softPanel}`}>
+                            Added {formatDate(lead.createdAt)}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                    {preMetricLeads.length === 0 && (
+                      <div className={`rounded-2xl border border-dashed p-4 text-sm ${mutedText}`}>
+                        No leads match the current metric and filters.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid gap-5 xl:grid-cols-[290px,1fr,400px]">
               <div className="order-1 grid gap-5">
@@ -1259,6 +1407,50 @@ export default function OptimizedUnifiedCrmPreview() {
                     <div>
                       <CardTitle>{selectedLead.name}</CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>{selectedLead.address}</p>
+                      <div className={`mt-4 rounded-3xl border p-4 ${softPanel}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold">Follow-up timeline</div>
+                            <div className={`text-xs ${mutedText}`}>
+                              {timeline.daysToAuction >= 0
+                                ? `${timeline.daysToAuction} days until auction`
+                                : `Auction passed ${Math.abs(timeline.daysToAuction)} days ago`}
+                            </div>
+                          </div>
+                          <Badge className="bg-blue-100 text-blue-700">
+                            Logged {formatDate(selectedLead.createdAt)}
+                          </Badge>
+                        </div>
+                        <div className="mt-4">
+                          <div className="relative h-10">
+                            <div className="absolute left-0 right-0 top-4 h-1 rounded-full bg-zinc-200" />
+                            <div
+                              className="absolute left-0 top-4 h-1 rounded-full bg-blue-700"
+                              style={{ width: `${timeline.progress}%` }}
+                            />
+                            {timeline.points.map((point) => (
+                              <div
+                                key={point.id}
+                                className="absolute top-0 -translate-x-1/2"
+                                style={{ left: point.position }}
+                              >
+                                <div
+                                  className={`mx-auto h-4 w-4 rounded-full border-2 ${
+                                    point.completed
+                                      ? "border-blue-700 bg-blue-700"
+                                      : point.label === "Auction"
+                                        ? "border-red-400 bg-red-100"
+                                        : "border-zinc-300 bg-white"
+                                  }`}
+                                />
+                                <div className="mt-1 text-center text-[10px] font-medium">
+                                  {formatDate(point.date)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <Badge className={stageStyle(getLeadStage(selectedLead))}>
@@ -1300,51 +1492,6 @@ export default function OptimizedUnifiedCrmPreview() {
                       className={`rounded-2xl ${inputTheme}`}
                     />
                   )}
-
-                  <div className={`rounded-3xl border p-4 ${softPanel}`}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold">Follow-up timeline</div>
-                        <div className={`text-xs ${mutedText}`}>
-                          {timeline.daysToAuction >= 0
-                            ? `${timeline.daysToAuction} days until auction`
-                            : `Auction passed ${Math.abs(timeline.daysToAuction)} days ago`}
-                        </div>
-                      </div>
-                      <Badge className="bg-blue-100 text-blue-700">
-                        Logged {formatDate(selectedLead.createdAt)}
-                      </Badge>
-                    </div>
-                    <div className="mt-4">
-                      <div className="relative h-10">
-                        <div className="absolute left-0 right-0 top-4 h-1 rounded-full bg-zinc-200" />
-                        <div
-                          className="absolute left-0 top-4 h-1 rounded-full bg-blue-700"
-                          style={{ width: `${timeline.progress}%` }}
-                        />
-                        {timeline.points.map((point) => (
-                          <div
-                            key={point.id}
-                            className="absolute top-0 -translate-x-1/2"
-                            style={{ left: point.position }}
-                          >
-                            <div
-                              className={`mx-auto h-4 w-4 rounded-full border-2 ${
-                                point.completed
-                                  ? "border-blue-700 bg-blue-700"
-                                  : point.label === "Auction"
-                                    ? "border-red-400 bg-red-100"
-                                    : "border-zinc-300 bg-white"
-                              }`}
-                            />
-                            <div className="mt-1 text-center text-[10px] font-medium">
-                              {formatDate(point.date)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">
                     Auto scheduler: Interested → tomorrow, Maybe Interested → 2 days, no answer →
