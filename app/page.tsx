@@ -124,6 +124,7 @@ type AgentQuickAddForm = {
 };
 
 type PreMetricFilter = "total" | "dueToday" | "auctionSoon" | "postponed" | null;
+type AgentMetricFilter = "total" | "dueToday" | "dueTomorrow" | "dueSoon" | null;
 
 const stages = [
   "Early Warning",
@@ -530,6 +531,11 @@ export default function OptimizedUnifiedCrmPreview() {
   const [leadCalendarOpen, setLeadCalendarOpen] = useState(false);
   const [agentSortBy, setAgentSortBy] = useState<"alphabetical" | "recent">("alphabetical");
   const [agentMarketFilter, setAgentMarketFilter] = useState("All markets");
+  const [agentMetricFilter, setAgentMetricFilter] = useState<AgentMetricFilter>(null);
+  const [agentMetricSortBy, setAgentMetricSortBy] = useState<"alphabetical" | "recent">(
+    "alphabetical",
+  );
+  const [agentMetricMarketFilter, setAgentMetricMarketFilter] = useState("All markets");
   const [preMetricFilter, setPreMetricFilter] = useState<PreMetricFilter>(null);
   const [preMetricSortBy, setPreMetricSortBy] = useState<"alphabetical" | "recent">(
     "alphabetical",
@@ -637,6 +643,36 @@ export default function OptimizedUnifiedCrmPreview() {
     () => ["All markets", ...new Set(agents.map((agent) => agent.market))],
     [agents],
   );
+
+  const agentMetricAgents = useMemo(() => {
+    let items = [...agents];
+
+    if (agentMetricFilter === "dueToday") {
+      items = items.filter((agent) => agent.nextFollowUp && differenceInDays(agent.nextFollowUp) === 0);
+    } else if (agentMetricFilter === "dueTomorrow") {
+      items = items.filter((agent) => agent.nextFollowUp && differenceInDays(agent.nextFollowUp) === 1);
+    } else if (agentMetricFilter === "dueSoon") {
+      items = items.filter((agent) => {
+        if (!agent.nextFollowUp) return false;
+        const diff = differenceInDays(agent.nextFollowUp);
+        return diff >= 0 && diff <= 7;
+      });
+    }
+
+    if (agentMetricMarketFilter !== "All markets") {
+      items = items.filter((agent) => agent.market === agentMetricMarketFilter);
+    }
+
+    return items.sort((a, b) => {
+      if (agentMetricSortBy === "recent") {
+        return (
+          new Date(`${b.addedAt}T12:00:00`).getTime() -
+          new Date(`${a.addedAt}T12:00:00`).getTime()
+        );
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [agentMetricFilter, agentMetricMarketFilter, agentMetricSortBy, agents]);
 
   const agentMetrics = useMemo(() => {
     const dueToday = agents.filter((agent) => agent.nextFollowUp && differenceInDays(agent.nextFollowUp) === 0).length;
@@ -1617,12 +1653,116 @@ export default function OptimizedUnifiedCrmPreview() {
         {mode === "agents" && (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <Metric title="Total Agents" value={agents.length} sub="directory contacts" icon={Users} dark={theme === "dark"} />
-              <Metric title="Due Today" value={agentMetrics.dueToday} sub="needs touch today" icon={Bell} hot />
-              <Metric title="Due Tomorrow" value={agentMetrics.dueTomorrow} sub="next-day follow-ups" icon={CalendarDays} dark={theme === "dark"} />
-              <Metric title="Due Soon" value={agentMetrics.dueSoon} sub="within 7 days" icon={CalendarClock} dark={theme === "dark"} />
+              <button type="button" onClick={() => setAgentMetricFilter("total")} className="text-left">
+                <Metric title="Total Agents" value={agents.length} sub="directory contacts" icon={Users} dark={theme === "dark"} />
+              </button>
+              <button type="button" onClick={() => setAgentMetricFilter("dueToday")} className="text-left">
+                <Metric title="Due Today" value={agentMetrics.dueToday} sub="needs touch today" icon={Bell} hot />
+              </button>
+              <button type="button" onClick={() => setAgentMetricFilter("dueTomorrow")} className="text-left">
+                <Metric title="Due Tomorrow" value={agentMetrics.dueTomorrow} sub="next-day follow-ups" icon={CalendarDays} dark={theme === "dark"} />
+              </button>
+              <button type="button" onClick={() => setAgentMetricFilter("dueSoon")} className="text-left">
+                <Metric title="Due Soon" value={agentMetrics.dueSoon} sub="within 7 days" icon={CalendarClock} dark={theme === "dark"} />
+              </button>
               <Metric title="Auto 10-Day" value={agents.filter((agent) => agent.autoFollowUp).length} sub="recurring check-ins" icon={ListChecks} dark={theme === "dark"} />
             </div>
+
+            {agentMetricFilter && (
+              <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <CardTitle>
+                        {agentMetricFilter === "total" && "All Agents"}
+                        {agentMetricFilter === "dueToday" && "Agents Due Today"}
+                        {agentMetricFilter === "dueTomorrow" && "Agents Due Tomorrow"}
+                        {agentMetricFilter === "dueSoon" && "Agents Due Soon"}
+                      </CardTitle>
+                      <p className={`mt-1 text-sm ${mutedText}`}>
+                        Filter the matching agent list by name order, recency, or county/market.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className={`rounded-2xl ${outlineTheme}`}
+                      onClick={() => setAgentMetricFilter(null)}
+                    >
+                      Clear Filter
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 max-w-full gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={`w-full max-w-full min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
+                        Sort
+                      </label>
+                      <select
+                        value={agentMetricSortBy}
+                        onChange={(event) =>
+                          setAgentMetricSortBy(event.target.value as "alphabetical" | "recent")
+                        }
+                        className={`w-full min-w-0 max-w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                      >
+                        <option value="alphabetical" className="text-zinc-950">
+                          Alphabetical by agent name
+                        </option>
+                        <option value="recent" className="text-zinc-950">
+                          Most recently added
+                        </option>
+                      </select>
+                    </div>
+                    <div className={`w-full max-w-full min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
+                        County / market
+                      </label>
+                      <select
+                        value={agentMetricMarketFilter}
+                        onChange={(event) => setAgentMetricMarketFilter(event.target.value)}
+                        className={`w-full min-w-0 max-w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                      >
+                        {agentMarkets.map((market) => (
+                          <option key={market} value={market} className="text-zinc-950">
+                            {market}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {agentMetricAgents.map((agent) => (
+                      <Card
+                        key={agent.id}
+                        className={`min-w-0 overflow-hidden rounded-3xl shadow-sm ${theme === "dark" ? "border-white/10 bg-zinc-950/70" : "bg-white"}`}
+                      >
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="space-y-2">
+                            <div className="truncate text-lg font-semibold">{agent.name}</div>
+                            <div className={`text-sm ${mutedText}`}>
+                              {agent.type} • {agent.market}
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className={`rounded-full px-3 py-1 ${softPanel}`}>
+                                Added {formatDate(agent.addedAt)}
+                              </span>
+                              <span className={`rounded-full px-3 py-1 ${softPanel}`}>
+                                {dueLabel(agent.nextFollowUp)}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {agentMetricAgents.length === 0 && (
+                      <div className={`rounded-2xl border border-dashed p-4 text-sm ${mutedText}`}>
+                        No agents match the current metric and filters.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid w-full max-w-full min-w-0 gap-5 overflow-x-hidden xl:grid-cols-[minmax(0,270px),minmax(0,1fr)]">
               <div className="grid w-full max-w-full min-w-0 gap-5">
