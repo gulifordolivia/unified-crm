@@ -482,13 +482,20 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function compareAgents(sortBy: "alphabetical" | "recent") {
+function compareAgents(sortBy: "alphabetical" | "recent" | "market") {
   return (a: Agent, b: Agent) => {
     if (sortBy === "recent") {
       return (
         new Date(`${b.addedAt}T12:00:00`).getTime() - new Date(`${a.addedAt}T12:00:00`).getTime()
       );
     }
+
+    if (sortBy === "market") {
+      const marketCompare = a.market.localeCompare(b.market);
+      if (marketCompare !== 0) return marketCompare;
+      return a.name.localeCompare(b.name);
+    }
+
     return a.name.localeCompare(b.name);
   };
 }
@@ -529,7 +536,9 @@ export default function OptimizedUnifiedCrmPreview() {
     showCalendar: false,
   });
   const [leadCalendarOpen, setLeadCalendarOpen] = useState(false);
-  const [agentSortBy, setAgentSortBy] = useState<"alphabetical" | "recent">("alphabetical");
+  const [agentSortBy, setAgentSortBy] = useState<"alphabetical" | "recent" | "market">(
+    "alphabetical",
+  );
   const [agentMarketFilter, setAgentMarketFilter] = useState("All markets");
   const [agentMetricFilter, setAgentMetricFilter] = useState<AgentMetricFilter>(null);
   const [agentMetricSortBy, setAgentMetricSortBy] = useState<"alphabetical" | "recent">(
@@ -628,21 +637,80 @@ export default function OptimizedUnifiedCrmPreview() {
       .sort(compareAgents(agentSortBy));
   }, [agents, agentMarketFilter, agentSortBy, search]);
 
-  const agentDirectory = useMemo(
+  const alphabeticalAgentGroups = useMemo(
     () =>
       alphabet
         .map((letter) => ({
-          letter,
+          id: `alpha-${letter}`,
+          label: letter,
           items: filteredAgents.filter((agent) => agent.name.toUpperCase().startsWith(letter)),
         }))
         .filter((group) => group.items.length > 0),
     [filteredAgents],
   );
 
+  const recentAgentGroups = useMemo(() => {
+    const today = getTodayDate();
+    const weekCutoff = addDays(today, -7);
+    const monthCutoff = addDays(today, -30);
+
+    return [
+      {
+        id: "recent-today",
+        label: "Today",
+        items: filteredAgents.filter((agent) => agent.addedAt === today),
+      },
+      {
+        id: "recent-week",
+        label: "This Week",
+        items: filteredAgents.filter(
+          (agent) => agent.addedAt < today && agent.addedAt >= weekCutoff,
+        ),
+      },
+      {
+        id: "recent-month",
+        label: "This Month",
+        items: filteredAgents.filter(
+          (agent) => agent.addedAt < weekCutoff && agent.addedAt >= monthCutoff,
+        ),
+      },
+      {
+        id: "recent-older",
+        label: "Older",
+        items: filteredAgents.filter((agent) => agent.addedAt < monthCutoff),
+      },
+    ].filter((group) => group.items.length > 0);
+  }, [filteredAgents]);
+
   const agentMarkets = useMemo(
     () => ["All markets", ...new Set(agents.map((agent) => agent.market))],
     [agents],
   );
+
+  const marketAgentGroups = useMemo(
+    () =>
+      agentMarkets
+        .filter((market) => market !== "All markets")
+        .map((market) => ({
+          id: `market-${market.replace(/\s+/g, "-").toLowerCase()}`,
+          label: market,
+          items: filteredAgents.filter((agent) => agent.market === market),
+        }))
+        .filter((group) => group.items.length > 0),
+    [agentMarkets, filteredAgents],
+  );
+
+  const primaryAgentGroups = useMemo(() => {
+    if (agentSortBy === "recent") {
+      return recentAgentGroups;
+    }
+
+    if (agentSortBy === "alphabetical") {
+      return alphabeticalAgentGroups;
+    }
+
+    return marketAgentGroups;
+  }, [agentSortBy, alphabeticalAgentGroups, marketAgentGroups, recentAgentGroups]);
 
   const agentMetricAgents = useMemo(() => {
     let items = [...agents];
@@ -1878,42 +1946,15 @@ export default function OptimizedUnifiedCrmPreview() {
                   </CardContent>
                 </Card>
 
-                <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle>Directory index</CardTitle>
-                    <p className={`text-sm ${mutedText}`}>
-                      Jump by first letter and browse the directory quickly.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-                    <div className="flex w-full max-w-full gap-2 overflow-x-auto pb-2 xl:flex-col xl:overflow-visible">
-                      {alphabet.map((letter) => (
-                        <Button
-                          key={letter}
-                          variant="outline"
-                          className={`h-9 shrink-0 rounded-2xl px-3 xl:w-full ${outlineTheme}`}
-                          onClick={() =>
-                            document
-                              .getElementById(`agent-letter-${letter}`)
-                              ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                          }
-                        >
-                          {letter}
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
               <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
                 <CardHeader className="p-4 sm:p-6">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
-                      <CardTitle>Alphabetical agent directory</CardTitle>
+                      <CardTitle>Filtered agent list</CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>
-                        Sort, filter, log follow-ups, and prune stale contacts without leaving the
-                        dashboard.
+                        Sort, filter, jump, and work your contacts from one mobile-friendly list.
                       </p>
                     </div>
                     <div className="grid grid-cols-1 max-w-full gap-2 sm:grid-cols-2">
@@ -1924,7 +1965,9 @@ export default function OptimizedUnifiedCrmPreview() {
                         <select
                           value={agentSortBy}
                           onChange={(event) =>
-                            setAgentSortBy(event.target.value as "alphabetical" | "recent")
+                            setAgentSortBy(
+                              event.target.value as "alphabetical" | "recent" | "market",
+                            )
                           }
                           className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
                         >
@@ -1933,6 +1976,9 @@ export default function OptimizedUnifiedCrmPreview() {
                           </option>
                           <option value="recent" className="text-zinc-950">
                             Most recent
+                          </option>
+                          <option value="market" className="text-zinc-950">
+                            County / Market
                           </option>
                         </select>
                       </div>
@@ -1956,28 +2002,30 @@ export default function OptimizedUnifiedCrmPreview() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-                  <div className="grid min-w-0 gap-6 lg:grid-cols-[72px,minmax(0,1fr)]">
-                    <div className="hidden lg:flex lg:flex-col lg:gap-2">
-                      {alphabet.map((letter) => (
-                        <button
-                          key={letter}
-                          className={`rounded-2xl border px-2 py-1 text-xs font-medium ${softPanel}`}
+                  {primaryAgentGroups.length > 0 && (
+                    <div className="mb-5 flex w-full max-w-full gap-2 overflow-x-auto pb-2">
+                      {primaryAgentGroups.map((group) => (
+                        <Button
+                          key={group.id}
+                          variant="outline"
+                          className={`h-9 shrink-0 rounded-2xl px-3 ${outlineTheme}`}
                           onClick={() =>
                             document
-                              .getElementById(`agent-letter-${letter}`)
+                              .getElementById(group.id)
                               ?.scrollIntoView({ behavior: "smooth", block: "start" })
                           }
                         >
-                          {letter}
-                        </button>
+                          {group.label}
+                        </Button>
                       ))}
                     </div>
+                  )}
 
-                    <div className="min-w-0 space-y-6">
-                      {agentDirectory.map((group) => (
-                        <section key={group.letter} id={`agent-letter-${group.letter}`} className="w-full max-w-full min-w-0 space-y-3">
+                  <div className="min-w-0 space-y-6">
+                    {primaryAgentGroups.map((group) => (
+                        <section key={group.id} id={group.id} className="w-full max-w-full min-w-0 space-y-3">
                           <div className="flex items-center gap-3">
-                            <div className="text-2xl font-bold">{group.letter}</div>
+                            <div className="text-2xl font-bold">{group.label}</div>
                             <div className={`h-px flex-1 ${theme === "dark" ? "bg-white/10" : "bg-zinc-200"}`} />
                           </div>
                           <div className="grid gap-3">
@@ -2021,6 +2069,13 @@ export default function OptimizedUnifiedCrmPreview() {
                                         <Phone className="mr-2 h-4 w-4" />
                                         Call
                                       </Button>
+                                      <a
+                                        href={`sms:${agent.phone}`}
+                                        className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
+                                      >
+                                        <Mail className="h-4 w-4" />
+                                        Text
+                                      </a>
                                       <Button className="w-full max-w-full rounded-2xl sm:w-auto" onClick={() => logAgentFollowUp(agent)}>
                                         Log Follow-Up
                                       </Button>
@@ -2042,7 +2097,6 @@ export default function OptimizedUnifiedCrmPreview() {
                           </div>
                         </section>
                       ))}
-                    </div>
                   </div>
                 </CardContent>
               </Card>
