@@ -32,6 +32,7 @@
 
 html {
   background: var(--gradient-app);
+  overflow-x: hidden;
 }
 
 body {
@@ -39,6 +40,7 @@ body {
   background: var(--gradient-app);
   color: var(--color-copy);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
+  overflow-x: hidden;
 }
 
 a {

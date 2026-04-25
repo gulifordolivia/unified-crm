@@ -652,8 +652,8 @@ export default function OptimizedUnifiedCrmPreview() {
 
   const pageTheme =
     theme === "dark"
-      ? "min-h-screen bg-[radial-gradient(circle_at_top,_#26334f,_#09090b_58%)] p-3 text-zinc-100 md:p-6"
-      : "min-h-screen bg-zinc-100 p-3 text-zinc-950 md:p-6";
+      ? "min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,_#26334f,_#09090b_58%)] p-3 text-zinc-100 md:p-6"
+      : "min-h-screen overflow-x-hidden bg-zinc-100 p-3 text-zinc-950 md:p-6";
   const panelTheme = theme === "dark" ? "border-white/10 bg-zinc-900/85 text-zinc-100" : "bg-white";
   const mutedText = theme === "dark" ? "text-zinc-400" : "text-zinc-500";
   const inputTheme =
@@ -1625,7 +1625,7 @@ export default function OptimizedUnifiedCrmPreview() {
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[270px,1fr]">
-              <div className="grid gap-5">
+              <div className="grid min-w-0 gap-5">
                 <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
                   <CardHeader>
                     <CardTitle>Agent Quick Add</CardTitle>
@@ -1642,7 +1642,7 @@ export default function OptimizedUnifiedCrmPreview() {
                       placeholder="Agent name"
                       className={`rounded-2xl ${inputTheme}`}
                     />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <Input
                         value={agentQuickAdd.phone}
                         onChange={(event) =>
@@ -1679,8 +1679,8 @@ export default function OptimizedUnifiedCrmPreview() {
                       </select>
                     </div>
                     <div className={`rounded-2xl border p-3 ${softPanel}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
                           <div className="text-sm font-medium">Automatic follow-up every 10 days</div>
                           <div className={`text-xs ${mutedText}`}>
                             Great for relationship maintenance and referrals.
@@ -1746,12 +1746,12 @@ export default function OptimizedUnifiedCrmPreview() {
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex gap-2 overflow-x-auto pb-2 xl:flex-col">
+                    <div className="-mx-1 flex max-w-full gap-2 overflow-x-auto pb-2 xl:mx-0 xl:flex-col xl:overflow-visible">
                       {alphabet.map((letter) => (
                         <Button
                           key={letter}
                           variant="outline"
-                          className={`h-9 min-w-9 rounded-2xl px-3 ${outlineTheme}`}
+                          className={`h-9 shrink-0 rounded-2xl px-3 ${outlineTheme}`}
                           onClick={() =>
                             document
                               .getElementById(`agent-letter-${letter}`)
@@ -1766,18 +1766,18 @@ export default function OptimizedUnifiedCrmPreview() {
                 </Card>
               </div>
 
-              <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+              <Card className={`min-w-0 rounded-3xl shadow-sm ${panelTheme}`}>
                 <CardHeader>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle>Alphabetical agent directory</CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>
                         Sort, filter, log follow-ups, and prune stale contacts without leaving the
                         dashboard.
                       </p>
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                    <div className="grid max-w-full gap-2 sm:grid-cols-2">
+                      <div className={`min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
                         <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                           Sort
                         </label>
@@ -1796,7 +1796,7 @@ export default function OptimizedUnifiedCrmPreview() {
                           </option>
                         </select>
                       </div>
-                      <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                      <div className={`min-w-0 rounded-2xl border px-3 py-2 ${inputTheme}`}>
                         <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
                           Market
                         </label>
@@ -1816,7 +1816,7 @@ export default function OptimizedUnifiedCrmPreview() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-6 lg:grid-cols-[72px,1fr]">
+                  <div className="grid min-w-0 gap-6 lg:grid-cols-[72px,minmax(0,1fr)]">
                     <div className="hidden lg:flex lg:flex-col lg:gap-2">
                       {alphabet.map((letter) => (
                         <button
@@ -1833,24 +1833,24 @@ export default function OptimizedUnifiedCrmPreview() {
                       ))}
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="min-w-0 space-y-6">
                       {agentDirectory.map((group) => (
-                        <section key={group.letter} id={`agent-letter-${group.letter}`} className="space-y-3">
+                        <section key={group.letter} id={`agent-letter-${group.letter}`} className="min-w-0 space-y-3">
                           <div className="flex items-center gap-3">
                             <div className="text-2xl font-bold">{group.letter}</div>
                             <div className={`h-px flex-1 ${theme === "dark" ? "bg-white/10" : "bg-zinc-200"}`} />
                           </div>
                           <div className="grid gap-3">
                             {group.items.map((agent) => (
-                              <Card key={agent.id} className={`rounded-3xl shadow-sm ${theme === "dark" ? "border-white/10 bg-zinc-950/70" : "bg-white"}`}>
+                              <Card key={agent.id} className={`min-w-0 overflow-hidden rounded-3xl shadow-sm ${theme === "dark" ? "border-white/10 bg-zinc-950/70" : "bg-white"}`}>
                                 <CardContent className="p-5">
-                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                    <div className="space-y-2">
-                                      <div className="text-lg font-semibold">{agent.name}</div>
+                                  <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div className="min-w-0 space-y-2">
+                                      <div className="truncate text-lg font-semibold">{agent.name}</div>
                                       <div className={`text-sm ${mutedText}`}>
                                         {agent.type} • {agent.market}
                                       </div>
-                                      <div className="text-sm">{agent.notes}</div>
+                                      <div className="break-words text-sm">{agent.notes}</div>
                                       <div className="flex flex-wrap gap-2 text-xs">
                                         <span className={`rounded-full px-3 py-1 ${softPanel}`}>
                                           Added {formatDate(agent.addedAt)}
@@ -1867,7 +1867,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="grid w-full shrink-0 gap-2 sm:w-auto sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end">
                                       <Badge
                                         className={
                                           agent.nextFollowUp && differenceInDays(agent.nextFollowUp) <= 0
@@ -1877,16 +1877,16 @@ export default function OptimizedUnifiedCrmPreview() {
                                       >
                                         {dueLabel(agent.nextFollowUp)}
                                       </Badge>
-                                      <Button variant="outline" className={`rounded-2xl ${outlineTheme}`}>
+                                      <Button variant="outline" className={`w-full rounded-2xl sm:w-auto ${outlineTheme}`}>
                                         <Phone className="mr-2 h-4 w-4" />
                                         Call
                                       </Button>
-                                      <Button className="rounded-2xl" onClick={() => logAgentFollowUp(agent)}>
+                                      <Button className="w-full rounded-2xl sm:w-auto" onClick={() => logAgentFollowUp(agent)}>
                                         Log Follow-Up
                                       </Button>
                                       <Button
                                         variant="outline"
-                                        className={`rounded-2xl ${outlineTheme}`}
+                                        className={`w-full rounded-2xl sm:w-auto ${outlineTheme}`}
                                         onClick={() =>
                                           setAgents((curr) => curr.filter((item) => item.id !== agent.id))
                                         }
