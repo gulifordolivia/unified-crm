@@ -124,7 +124,7 @@ type AgentQuickAddForm = {
 };
 
 type PreMetricFilter = "total" | "dueToday" | "auctionSoon" | "postponed" | null;
-type AgentMetricFilter = "total" | "dueToday" | "dueTomorrow" | "dueSoon" | null;
+type AgentMetricFilter = "total" | "dueToday" | "dueTomorrow" | "dueSoon" | "auto10Day" | null;
 
 const stages = [
   "Early Warning",
@@ -725,6 +725,8 @@ export default function OptimizedUnifiedCrmPreview() {
         const diff = differenceInDays(agent.nextFollowUp);
         return diff >= 0 && diff <= 7;
       });
+    } else if (agentMetricFilter === "auto10Day") {
+      items = items.filter((agent) => agent.autoFollowUp);
     }
 
     if (agentMetricMarketFilter !== "All markets") {
@@ -1733,7 +1735,9 @@ export default function OptimizedUnifiedCrmPreview() {
               <button type="button" onClick={() => setAgentMetricFilter("dueSoon")} className="text-left">
                 <Metric title="Due Soon" value={agentMetrics.dueSoon} sub="within 7 days" icon={CalendarClock} dark={theme === "dark"} />
               </button>
-              <Metric title="Auto 10-Day" value={agents.filter((agent) => agent.autoFollowUp).length} sub="recurring check-ins" icon={ListChecks} dark={theme === "dark"} />
+              <button type="button" onClick={() => setAgentMetricFilter("auto10Day")} className="text-left">
+                <Metric title="Auto 10-Day" value={agents.filter((agent) => agent.autoFollowUp).length} sub="recurring check-ins" icon={ListChecks} dark={theme === "dark"} />
+              </button>
             </div>
 
             {agentMetricFilter && (
@@ -1746,6 +1750,7 @@ export default function OptimizedUnifiedCrmPreview() {
                         {agentMetricFilter === "dueToday" && "Agents Due Today"}
                         {agentMetricFilter === "dueTomorrow" && "Agents Due Tomorrow"}
                         {agentMetricFilter === "dueSoon" && "Agents Due Soon"}
+                        {agentMetricFilter === "auto10Day" && "Agents on Auto 10-Day Follow-Up"}
                       </CardTitle>
                       <p className={`mt-1 text-sm ${mutedText}`}>
                         Filter the matching agent list by name order, recency, or county/market.
@@ -1817,6 +1822,22 @@ export default function OptimizedUnifiedCrmPreview() {
                               <span className={`rounded-full px-3 py-1 ${softPanel}`}>
                                 {dueLabel(agent.nextFollowUp)}
                               </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
+                              <a
+                                href={`tel:${agent.phone}`}
+                                className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
+                              >
+                                <Phone className="h-4 w-4" />
+                                Call
+                              </a>
+                              <a
+                                href={`sms:${agent.phone}`}
+                                className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
+                              >
+                                <Mail className="h-4 w-4" />
+                                Text
+                              </a>
                             </div>
                           </div>
                         </CardContent>
@@ -2065,10 +2086,13 @@ export default function OptimizedUnifiedCrmPreview() {
                                       >
                                         {dueLabel(agent.nextFollowUp)}
                                       </Badge>
-                                      <Button variant="outline" className={`w-full max-w-full rounded-2xl sm:w-auto ${outlineTheme}`}>
-                                        <Phone className="mr-2 h-4 w-4" />
+                                      <a
+                                        href={`tel:${agent.phone}`}
+                                        className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
+                                      >
+                                        <Phone className="h-4 w-4" />
                                         Call
-                                      </Button>
+                                      </a>
                                       <a
                                         href={`sms:${agent.phone}`}
                                         className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
