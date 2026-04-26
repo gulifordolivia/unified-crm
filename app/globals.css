@@ -50,6 +50,35 @@ a {
   text-decoration: none;
 }
 
+.pressable {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease,
+    opacity 180ms ease,
+    box-shadow 180ms ease;
+  will-change: transform, filter;
+}
+
+@media (hover: hover) {
+  .pressable:hover {
+    filter: brightness(0.97);
+  }
+}
+
+.pressable:active {
+  filter: brightness(0.88);
+  transform: translateY(1px) scale(0.99);
+}
+
+.pressable:disabled,
+.pressable[aria-disabled="true"] {
+  filter: none;
+  transform: none;
+}
+
 ::selection {
   background: rgba(110, 231, 216, 0.28);
   color: var(--color-sand);

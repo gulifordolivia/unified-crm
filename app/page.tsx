@@ -1071,7 +1071,7 @@ export default function OptimizedUnifiedCrmPreview() {
         {mode === "pre" && (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <button type="button" onClick={() => setPreMetricFilter("total")} className="text-left">
+              <button type="button" onClick={() => setPreMetricFilter("total")} className="pressable text-left">
                 <Metric
                   title="Total Leads"
                   value={leads.length}
@@ -1080,10 +1080,10 @@ export default function OptimizedUnifiedCrmPreview() {
                   dark={theme === "dark"}
                 />
               </button>
-              <button type="button" onClick={() => setPreMetricFilter("dueToday")} className="text-left">
+              <button type="button" onClick={() => setPreMetricFilter("dueToday")} className="pressable text-left">
                 <Metric title="Due Today" value={dailyQueue.length} sub="sticky priority queue" icon={Bell} hot />
               </button>
-              <button type="button" onClick={() => setPreMetricFilter("auctionSoon")} className="text-left">
+              <button type="button" onClick={() => setPreMetricFilter("auctionSoon")} className="pressable text-left">
                 <Metric
                   title="Auctions < 7 Days"
                   value={leads.filter((lead) => {
@@ -1095,7 +1095,7 @@ export default function OptimizedUnifiedCrmPreview() {
                   hot
                 />
               </button>
-              <button type="button" onClick={() => setPreMetricFilter("postponed")} className="text-left">
+              <button type="button" onClick={() => setPreMetricFilter("postponed")} className="pressable text-left">
                 <Metric
                   title="Postponed"
                   value={leads.filter((lead) => getLeadStage(lead) === "Postponed").length}
@@ -1180,7 +1180,7 @@ export default function OptimizedUnifiedCrmPreview() {
                             block: "start",
                           });
                         }}
-                        className={`rounded-2xl border p-4 text-left transition hover:border-blue-400 ${
+                        className={`pressable rounded-2xl border p-4 text-left transition hover:border-blue-400 ${
                           selectedLeadId === lead.id
                             ? "border-blue-500 ring-2 ring-blue-100"
                             : theme === "dark"
@@ -1237,7 +1237,7 @@ export default function OptimizedUnifiedCrmPreview() {
                               block: "start",
                             });
                           }}
-                          className={`w-full rounded-2xl border p-3 text-left transition hover:border-blue-400 ${
+                          className={`pressable w-full rounded-2xl border p-3 text-left transition hover:border-blue-400 ${
                             selectedLeadId === item.id
                               ? "border-blue-500 ring-2 ring-blue-100"
                               : theme === "dark"
@@ -1453,7 +1453,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                   block: "start",
                                 });
                               }}
-                              className={`w-full cursor-grab rounded-2xl border p-3 text-left transition hover:border-blue-400 hover:shadow-sm active:cursor-grabbing ${
+                              className={`pressable w-full cursor-grab rounded-2xl border p-3 text-left transition hover:border-blue-400 hover:shadow-sm active:cursor-grabbing ${
                                 selectedLeadId === lead.id
                                   ? "border-blue-500 ring-2 ring-blue-100"
                                   : theme === "dark"
@@ -1582,7 +1582,7 @@ export default function OptimizedUnifiedCrmPreview() {
                         onClick={
                           item.label === "Next Follow-Up" ? () => setLeadCalendarOpen((curr) => !curr) : undefined
                         }
-                        className={`rounded-2xl border p-3 text-left ${softPanel}`}
+                        className={`pressable rounded-2xl border p-3 text-left ${softPanel}`}
                       >
                         <div className={mutedText}>{item.label}</div>
                         <div className="font-medium">{item.value}</div>
@@ -1723,19 +1723,19 @@ export default function OptimizedUnifiedCrmPreview() {
         {mode === "agents" && (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <button type="button" onClick={() => setAgentMetricFilter("total")} className="text-left">
+              <button type="button" onClick={() => setAgentMetricFilter("total")} className="pressable text-left">
                 <Metric title="Total Agents" value={agents.length} sub="directory contacts" icon={Users} dark={theme === "dark"} />
               </button>
-              <button type="button" onClick={() => setAgentMetricFilter("dueToday")} className="text-left">
+              <button type="button" onClick={() => setAgentMetricFilter("dueToday")} className="pressable text-left">
                 <Metric title="Due Today" value={agentMetrics.dueToday} sub="needs touch today" icon={Bell} hot />
               </button>
-              <button type="button" onClick={() => setAgentMetricFilter("dueTomorrow")} className="text-left">
+              <button type="button" onClick={() => setAgentMetricFilter("dueTomorrow")} className="pressable text-left">
                 <Metric title="Due Tomorrow" value={agentMetrics.dueTomorrow} sub="next-day follow-ups" icon={CalendarDays} dark={theme === "dark"} />
               </button>
-              <button type="button" onClick={() => setAgentMetricFilter("dueSoon")} className="text-left">
+              <button type="button" onClick={() => setAgentMetricFilter("dueSoon")} className="pressable text-left">
                 <Metric title="Due Soon" value={agentMetrics.dueSoon} sub="within 7 days" icon={CalendarClock} dark={theme === "dark"} />
               </button>
-              <button type="button" onClick={() => setAgentMetricFilter("auto10Day")} className="text-left">
+              <button type="button" onClick={() => setAgentMetricFilter("auto10Day")} className="pressable text-left">
                 <Metric title="Auto 10-Day" value={agents.filter((agent) => agent.autoFollowUp).length} sub="recurring check-ins" icon={ListChecks} dark={theme === "dark"} />
               </button>
             </div>
@@ -1826,14 +1826,14 @@ export default function OptimizedUnifiedCrmPreview() {
                             <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
                               <a
                                 href={`tel:${agent.phone}`}
-                                className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
+                                className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
                               >
                                 <Phone className="h-4 w-4" />
                                 Call
                               </a>
                               <a
                                 href={`sms:${agent.phone}`}
-                                className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
+                                className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
                               >
                                 <Mail className="h-4 w-4" />
                                 Text
@@ -2066,7 +2066,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                         </span>
                                         <button
                                           type="button"
-                                          className={`rounded-full px-3 py-1 ${softPanel}`}
+                                          className={`pressable rounded-full px-3 py-1 ${softPanel}`}
                                           onClick={() => logAgentFollowUp(agent)}
                                         >
                                           Due {dueLabel(agent.nextFollowUp)}
@@ -2088,14 +2088,14 @@ export default function OptimizedUnifiedCrmPreview() {
                                       </Badge>
                                       <a
                                         href={`tel:${agent.phone}`}
-                                        className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
+                                        className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
                                       >
                                         <Phone className="h-4 w-4" />
                                         Call
                                       </a>
                                       <a
                                         href={`sms:${agent.phone}`}
-                                        className={`inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
+                                        className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
                                       >
                                         <Mail className="h-4 w-4" />
                                         Text

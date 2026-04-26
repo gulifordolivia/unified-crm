@@ -121,7 +121,7 @@ export default function MapView({ leads, dark = false }: MapViewProps) {
             <button
               key={lead.id}
               onClick={() => setActiveLeadId(lead.id)}
-              className={`w-full rounded-2xl border p-4 text-left transition ${
+              className={`pressable w-full rounded-2xl border p-4 text-left transition ${
                 activeLeadId === lead.id
                   ? "border-blue-500 ring-2 ring-blue-100"
                   : dark
@@ -286,7 +286,7 @@ export default function MapView({ leads, dark = false }: MapViewProps) {
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeLead.address)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-medium text-white"
+                  className="pressable mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-medium text-white"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Open in Google Maps
