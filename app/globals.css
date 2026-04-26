@@ -51,6 +51,7 @@ a {
 }
 
 .pressable {
+  cursor: pointer;
   transition:
     background-color 180ms ease,
     border-color 180ms ease,
@@ -64,13 +65,13 @@ a {
 
 @media (hover: hover) {
   .pressable:hover {
-    filter: brightness(0.97);
+    filter: brightness(0.95);
   }
 }
 
 .pressable:active {
-  filter: brightness(0.88);
-  transform: translateY(1px) scale(0.99);
+  filter: brightness(0.82);
+  transform: translateY(1px) scale(0.98);
 }
 
 .pressable:disabled,
