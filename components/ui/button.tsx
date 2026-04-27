@@ -23,7 +23,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`pressable inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-150 hover:brightness-95 active:scale-[0.98] active:brightness-90 disabled:cursor-not-allowed disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`}
+      className={`pressable inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all duration-150 hover:brightness-95 active:scale-[0.98] active:brightness-90 active:ring-2 active:ring-blue-400 active:ring-offset-1 active:ring-offset-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`}
       {...props}
     />
   );
