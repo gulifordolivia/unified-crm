@@ -55,6 +55,7 @@ type Lead = {
   address: string;
   county: string;
   phone: string;
+  email: string;
   stage: string;
   manualOverrideStage: string | null;
   auctionDate: string;
@@ -68,6 +69,7 @@ type Lead = {
   texts: number;
   lat: number;
   lng: number;
+  source: string;
   manualRank: number;
   autoFollowUp: boolean;
   postponed: boolean;
@@ -77,6 +79,7 @@ type Agent = {
   id: number;
   name: string;
   phone: string;
+  email: string;
   market: string;
   type: string;
   nextFollowUp: string | null;
@@ -104,6 +107,7 @@ type PreQuickAddForm = {
   ownerName: string;
   address: string;
   phone: string;
+  email: string;
   county: string;
   auctionDate: string;
   notes: string;
@@ -115,12 +119,42 @@ type PreQuickAddForm = {
 type AgentQuickAddForm = {
   name: string;
   phone: string;
+  email: string;
   market: string;
   type: string;
   notes: string;
   autoFollowUp: boolean;
   customFollowUp: string;
   showCalendar: boolean;
+};
+
+type LeadEditForm = {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  county: string;
+  auctionDate: string;
+  nextFollowUp: string;
+  notes: string;
+  postponed: boolean;
+};
+
+type AgentEditForm = {
+  name: string;
+  phone: string;
+  email: string;
+  market: string;
+  type: string;
+  nextFollowUp: string;
+  notes: string;
+  autoFollowUp: boolean;
+};
+
+type ImportSummary = {
+  added: number;
+  duplicates: number;
+  review: string[];
 };
 
 type PreMetricFilter = "total" | "dueToday" | "auctionSoon" | "postponed" | null;
@@ -146,6 +180,7 @@ const startingLeads: Lead[] = [
     address: "1809 Clover Ave, Detroit, MI",
     county: "Wayne",
     phone: "313-555-4001",
+    email: "",
     stage: "Final Push",
     manualOverrideStage: null,
     auctionDate: "2026-04-25",
@@ -163,6 +198,7 @@ const startingLeads: Lead[] = [
     texts: 1,
     lat: 42.3722,
     lng: -83.0635,
+    source: "Manual",
     manualRank: 0,
     autoFollowUp: true,
     postponed: false,
@@ -173,6 +209,7 @@ const startingLeads: Lead[] = [
     address: "794 E 99th St, Detroit, MI",
     county: "Wayne",
     phone: "313-555-2202",
+    email: "",
     stage: "Rising Urgency",
     manualOverrideStage: null,
     auctionDate: "2026-05-09",
@@ -186,6 +223,7 @@ const startingLeads: Lead[] = [
     texts: 0,
     lat: 42.4301,
     lng: -83.0174,
+    source: "Manual",
     manualRank: 0,
     autoFollowUp: false,
     postponed: false,
@@ -196,6 +234,7 @@ const startingLeads: Lead[] = [
     address: "22114 Harper Blvd, Roseville, MI",
     county: "Macomb",
     phone: "586-555-9090",
+    email: "",
     stage: "Postponed",
     manualOverrideStage: null,
     auctionDate: "2026-05-03",
@@ -212,6 +251,7 @@ const startingLeads: Lead[] = [
     texts: 2,
     lat: 42.5035,
     lng: -82.9364,
+    source: "Manual",
     manualRank: 0,
     autoFollowUp: true,
     postponed: true,
@@ -222,6 +262,7 @@ const startingLeads: Lead[] = [
     address: "40409 Birch Run, Sterling Heights, MI",
     county: "Macomb",
     phone: "586-555-0044",
+    email: "",
     stage: "Expired",
     manualOverrideStage: null,
     auctionDate: "2026-04-20",
@@ -235,6 +276,7 @@ const startingLeads: Lead[] = [
     texts: 2,
     lat: 42.5803,
     lng: -83.0302,
+    source: "Manual",
     manualRank: 0,
     autoFollowUp: false,
     postponed: false,
@@ -245,6 +287,7 @@ const startingLeads: Lead[] = [
     address: "905 Lakeview Dr, Warren, MI",
     county: "Macomb",
     phone: "586-555-4499",
+    email: "",
     stage: "Critical",
     manualOverrideStage: null,
     auctionDate: "2026-04-29",
@@ -258,6 +301,7 @@ const startingLeads: Lead[] = [
     texts: 1,
     lat: 42.5145,
     lng: -83.0147,
+    source: "Manual",
     manualRank: 0,
     autoFollowUp: true,
     postponed: false,
@@ -269,6 +313,7 @@ const startingAgents: Agent[] = [
     id: 1,
     name: "Sarah Klein",
     phone: "586-555-2121",
+    email: "sarah@macombhomes.com",
     market: "Macomb County",
     type: "Agent",
     nextFollowUp: "2026-04-23",
@@ -281,6 +326,7 @@ const startingAgents: Agent[] = [
     id: 2,
     name: "Mike Torres",
     phone: "313-555-7878",
+    email: "mike@detroitbuyers.com",
     market: "Detroit",
     type: "Wholesaler",
     nextFollowUp: "2026-04-22",
@@ -293,6 +339,7 @@ const startingAgents: Agent[] = [
     id: 3,
     name: "Julia Benton",
     phone: "248-555-6720",
+    email: "julia@oaklandlistings.com",
     market: "Oakland County",
     type: "Agent",
     nextFollowUp: "2026-05-03",
@@ -305,6 +352,7 @@ const startingAgents: Agent[] = [
     id: 4,
     name: "Aaron Bell",
     phone: "734-555-1122",
+    email: "aaron@waynecondos.com",
     market: "Wayne County",
     type: "Agent",
     nextFollowUp: "2026-04-24",
@@ -317,6 +365,7 @@ const startingAgents: Agent[] = [
     id: 5,
     name: "Zoe Marshall",
     phone: "248-555-4200",
+    email: "zoe@duplexfund.com",
     market: "Oakland County",
     type: "Investor",
     nextFollowUp: "2026-04-30",
@@ -377,6 +426,14 @@ function Metric({ title, value, sub, icon: Icon, hot, dark }: MetricProps) {
 
 function normalizeAddress(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 function addDays(dateValue: string, days: number) {
@@ -500,6 +557,207 @@ function compareAgents(sortBy: "alphabetical" | "recent" | "market") {
   };
 }
 
+function titleCase(value: string) {
+  return value
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function looksLikeAddress(value: string) {
+  return /\d/.test(value) && /(st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ct|court|ln|lane|way|pl|place|trl|trail)\b/i.test(value);
+}
+
+function looksLikeCountyOrMarket(value: string) {
+  return /(county|detroit|oakland|wayne|macomb|sterling heights|roseville|warren|dearborn|pontiac)/i.test(
+    value,
+  );
+}
+
+function parseDateValue(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const direct = new Date(trimmed);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct.toISOString().slice(0, 10);
+  }
+  const normalized = trimmed.replace(/\./g, "/").replace(/-/g, "/");
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
+function tokenizeImportRow(row: string) {
+  if (row.includes("\t")) {
+    return row.split("\t").map((part) => part.trim()).filter(Boolean);
+  }
+  if (row.includes("|")) {
+    return row.split("|").map((part) => part.trim()).filter(Boolean);
+  }
+  if (row.includes(",")) {
+    return row.split(",").map((part) => part.trim()).filter(Boolean);
+  }
+  if (row.includes(";")) {
+    return row.split(";").map((part) => part.trim()).filter(Boolean);
+  }
+  return row
+    .split(/\s{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function splitImportRows(value: string) {
+  return value
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function stripToken(source: string, token: string) {
+  if (!token) return source.trim();
+  return source.replace(token, " ").replace(/\s{2,}/g, " ").replace(/^[,\-|; ]+|[,\-|; ]+$/g, "").trim();
+}
+
+function extractEmail(row: string) {
+  const match = row.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match?.[0] ?? "";
+}
+
+function extractPhone(row: string) {
+  const match = row.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+  return match?.[0] ?? "";
+}
+
+function extractDateToken(row: string) {
+  const match = row.match(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{2,4}\b/i);
+  return match?.[0] ?? "";
+}
+
+function dedupeAgents(existing: Agent[], candidate: Pick<Agent, "name" | "phone" | "email">) {
+  const normalizedCandidateName = normalizeName(candidate.name);
+  const normalizedCandidatePhone = normalizePhone(candidate.phone);
+  const normalizedCandidateEmail = candidate.email.trim().toLowerCase();
+
+  return existing.some((agent) => {
+    return (
+      (normalizedCandidatePhone && normalizePhone(agent.phone) === normalizedCandidatePhone) ||
+      (normalizedCandidateEmail && agent.email.trim().toLowerCase() === normalizedCandidateEmail) ||
+      (normalizedCandidateName && normalizeName(agent.name) === normalizedCandidateName)
+    );
+  });
+}
+
+function dedupeLeads(existing: Lead[], candidate: Pick<Lead, "address" | "phone" | "source">) {
+  const normalizedCandidateAddress = normalizeAddress(candidate.address);
+  const normalizedCandidatePhone = normalizePhone(candidate.phone);
+  const normalizedCandidateSource = candidate.source.trim().toLowerCase();
+
+  return existing.some((lead) => {
+    return (
+      (normalizedCandidateAddress && normalizeAddress(lead.address) === normalizedCandidateAddress) ||
+      (normalizedCandidatePhone && normalizePhone(lead.phone) === normalizedCandidatePhone) ||
+      (!!normalizedCandidateSource &&
+        lead.source.trim().toLowerCase() === normalizedCandidateSource &&
+        normalizeAddress(lead.address) === normalizedCandidateAddress)
+    );
+  });
+}
+
+function inferAgentType(value: string) {
+  if (/wholesale/i.test(value)) return "Wholesaler";
+  if (/investor|buyer/i.test(value)) return "Investor";
+  if (/lender|loan/i.test(value)) return "Lender";
+  return "Agent";
+}
+
+function parseAgentImportRow(row: string) {
+  const tokens = tokenizeImportRow(row);
+  const email = extractEmail(row);
+  const phone = extractPhone(row);
+  const dateToken = extractDateToken(row);
+  const explicitFollowUp = dateToken ? parseDateValue(dateToken) : null;
+
+  const leftovers = tokens.filter((token) => {
+    const normalized = token.trim();
+    return (
+      normalized &&
+      normalized !== email &&
+      normalized !== phone &&
+      normalized !== dateToken
+    );
+  });
+
+  const name = leftovers.shift() ?? stripToken(stripToken(stripToken(row, email), phone), dateToken);
+  const marketIndex = leftovers.findIndex(looksLikeCountyOrMarket);
+  const market = marketIndex >= 0 ? leftovers.splice(marketIndex, 1)[0] : "";
+  const typeIndex = leftovers.findIndex((token) => /(agent|wholesaler|investor|lender|broker)/i.test(token));
+  const type = typeIndex >= 0 ? inferAgentType(leftovers.splice(typeIndex, 1)[0]) : "Agent";
+  const notes = leftovers.join(" | ").trim();
+  const review = [];
+
+  if (!name) review.push("missing name");
+  if (!phone && !email) review.push("missing primary contact");
+
+  return {
+    name: titleCase(name || "New Agent"),
+    phone,
+    email,
+    market: market || "Unknown market",
+    type,
+    notes,
+    explicitFollowUp,
+    review,
+  };
+}
+
+function parseLeadImportRow(row: string) {
+  const tokens = tokenizeImportRow(row);
+  const email = extractEmail(row);
+  const phone = extractPhone(row);
+  const dateToken = extractDateToken(row);
+  const auctionDate = dateToken ? parseDateValue(dateToken) : null;
+
+  const leftovers = tokens.filter((token) => {
+    const normalized = token.trim();
+    return (
+      normalized &&
+      normalized !== email &&
+      normalized !== phone &&
+      normalized !== dateToken
+    );
+  });
+
+  const addressIndex = leftovers.findIndex(looksLikeAddress);
+  const address = addressIndex >= 0 ? leftovers.splice(addressIndex, 1)[0] : "";
+  const countyIndex = leftovers.findIndex(looksLikeCountyOrMarket);
+  const county = countyIndex >= 0 ? leftovers.splice(countyIndex, 1)[0] : "";
+  const sourceIndex = leftovers.findIndex((token) => /(source|zillow|auction|batch|csv|spreadsheet|manual|import)/i.test(token));
+  const source = sourceIndex >= 0 ? leftovers.splice(sourceIndex, 1)[0] : "Mass Import";
+  const ownerName = leftovers.shift() ?? "";
+  const notes = leftovers.join(" | ").trim();
+  const review = [];
+
+  if (!ownerName) review.push("missing owner name");
+  if (!address) review.push("missing property address");
+  if (!auctionDate) review.push("missing auction date");
+
+  return {
+    name: titleCase(ownerName || "New Owner"),
+    address,
+    phone,
+    email,
+    county: county || "Unknown",
+    auctionDate,
+    notes,
+    source,
+    review,
+  };
+}
+
 export default function OptimizedUnifiedCrmPreview() {
   const [mode, setMode] = useState<DashboardMode>("pre");
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -518,6 +776,7 @@ export default function OptimizedUnifiedCrmPreview() {
     ownerName: "",
     address: "",
     phone: "",
+    email: "",
     county: "",
     auctionDate: "",
     notes: "",
@@ -528,6 +787,7 @@ export default function OptimizedUnifiedCrmPreview() {
   const [agentQuickAdd, setAgentQuickAdd] = useState<AgentQuickAddForm>({
     name: "",
     phone: "",
+    email: "",
     market: "",
     type: "Agent",
     notes: "",
@@ -550,6 +810,14 @@ export default function OptimizedUnifiedCrmPreview() {
     "alphabetical",
   );
   const [preMetricCountyFilter, setPreMetricCountyFilter] = useState("All counties");
+  const [leadMassInput, setLeadMassInput] = useState("");
+  const [agentMassInput, setAgentMassInput] = useState("");
+  const [leadImportSummary, setLeadImportSummary] = useState<ImportSummary | null>(null);
+  const [agentImportSummary, setAgentImportSummary] = useState<ImportSummary | null>(null);
+  const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
+  const [leadEditForm, setLeadEditForm] = useState<LeadEditForm | null>(null);
+  const [editingAgentId, setEditingAgentId] = useState<number | null>(null);
+  const [agentEditForm, setAgentEditForm] = useState<AgentEditForm | null>(null);
   const sequenceRef = useRef(1000);
   const leadDetailRef = useRef<HTMLDivElement | null>(null);
 
@@ -806,6 +1074,7 @@ export default function OptimizedUnifiedCrmPreview() {
       address,
       county: "Unknown",
       phone: "",
+      email: "",
       stage,
       manualOverrideStage: stage,
       auctionDate: addDays(today, 12),
@@ -819,6 +1088,7 @@ export default function OptimizedUnifiedCrmPreview() {
       texts: 0,
       lat: 42.3314,
       lng: -83.0458,
+      source: "Manual",
       manualRank: nextSequence(),
       autoFollowUp: true,
       postponed: stage === "Postponed",
@@ -848,6 +1118,7 @@ export default function OptimizedUnifiedCrmPreview() {
       address,
       county: preQuickAdd.county.trim() || "Unknown",
       phone: preQuickAdd.phone.trim(),
+      email: preQuickAdd.email.trim(),
       stage: "Early Warning",
       manualOverrideStage: null,
       auctionDate: preQuickAdd.auctionDate || addDays(today, 14),
@@ -863,6 +1134,7 @@ export default function OptimizedUnifiedCrmPreview() {
       texts: 0,
       lat: 42.3485,
       lng: -83.0912,
+      source: "Manual",
       manualRank: 0,
       autoFollowUp: preQuickAdd.autoFollowUp,
       postponed: false,
@@ -874,6 +1146,7 @@ export default function OptimizedUnifiedCrmPreview() {
       ownerName: "",
       address: "",
       phone: "",
+      email: "",
       county: "",
       auctionDate: "",
       notes: "",
@@ -929,6 +1202,110 @@ export default function OptimizedUnifiedCrmPreview() {
     setAgents((curr) => curr.map((agent) => (agent.id === id ? { ...agent, ...patch } : agent)));
   };
 
+  const openLeadEditor = (lead: Lead) => {
+    setEditingLeadId(lead.id);
+    setLeadEditForm({
+      name: lead.name,
+      address: lead.address,
+      phone: lead.phone,
+      email: lead.email,
+      county: lead.county,
+      auctionDate: lead.auctionDate,
+      nextFollowUp: lead.nextFollowUp ?? "",
+      notes: lead.notes,
+      postponed: lead.postponed,
+    });
+  };
+
+  const saveLeadEdit = () => {
+    if (!editingLeadId || !leadEditForm) return;
+    updateLead(editingLeadId, {
+      name: leadEditForm.name.trim() || "New Owner",
+      address: leadEditForm.address.trim(),
+      phone: leadEditForm.phone.trim(),
+      email: leadEditForm.email.trim(),
+      county: leadEditForm.county.trim() || "Unknown",
+      auctionDate: leadEditForm.auctionDate || getTodayDate(),
+      nextFollowUp: leadEditForm.nextFollowUp || null,
+      notes: leadEditForm.notes.trim(),
+      postponed: leadEditForm.postponed,
+      source: "Edited",
+    });
+    setEditingLeadId(null);
+    setLeadEditForm(null);
+  };
+
+  const importPreLeads = () => {
+    const rows = splitImportRows(leadMassInput);
+    if (rows.length === 0) return;
+
+    let added = 0;
+    let duplicates = 0;
+    const review: string[] = [];
+    const newLeads: Lead[] = [];
+    const today = getTodayDate();
+
+    rows.forEach((row, index) => {
+      const parsed = parseLeadImportRow(row);
+      if (!parsed.address) {
+        review.push(`Row ${index + 1}: missing property address`);
+        return;
+      }
+
+      const nextFollowUp = addDays(today, 10);
+      const candidate: Lead = {
+        id: nextSequence(),
+        name: parsed.name,
+        address: parsed.address,
+        county: parsed.county,
+        phone: parsed.phone,
+        email: parsed.email,
+        stage: "Early Warning",
+        manualOverrideStage: null,
+        auctionDate: parsed.auctionDate || addDays(today, 14),
+        score: parsed.review.length > 0 ? 5 : 7,
+        status: parsed.review.length > 0 ? "Needs review" : "Not contacted",
+        notes:
+          [parsed.notes, parsed.review.length > 0 ? `Needs review: ${parsed.review.join(", ")}` : ""]
+            .filter(Boolean)
+            .join(" | ") || "Mass imported preforeclosure lead.",
+        createdAt: today,
+        nextFollowUp,
+        followUps: [
+          { id: `pre-import-${nextSequence()}`, date: nextFollowUp, label: "Scheduled", completed: false },
+        ],
+        calls: 0,
+        texts: 0,
+        lat: 42.3314,
+        lng: -83.0458,
+        source: parsed.source,
+        manualRank: 0,
+        autoFollowUp: true,
+        postponed: false,
+      };
+
+      if (dedupeLeads([...leads, ...newLeads], candidate)) {
+        duplicates += 1;
+        return;
+      }
+
+      if (parsed.review.length > 0) {
+        review.push(`Row ${index + 1}: ${parsed.review.join(", ")}`);
+      }
+
+      newLeads.push(candidate);
+      added += 1;
+    });
+
+    if (newLeads.length > 0) {
+      setLeads((curr) => [...newLeads, ...curr]);
+      setSelectedLeadId(newLeads[0].id);
+    }
+
+    setLeadImportSummary({ added, duplicates, review });
+    setLeadMassInput("");
+  };
+
   const logAgentFollowUp = (agent: Agent) => {
     const today = getTodayDate();
     const nextFollowUp = agent.autoFollowUp ? addDays(today, 10) : addDays(today, 3);
@@ -946,6 +1323,7 @@ export default function OptimizedUnifiedCrmPreview() {
       id: nextSequence(),
       name: agentQuickAdd.name.trim(),
       phone: agentQuickAdd.phone.trim(),
+      email: agentQuickAdd.email.trim(),
       market: agentQuickAdd.market.trim() || "Unknown market",
       type: agentQuickAdd.type,
       nextFollowUp: scheduled,
@@ -958,6 +1336,7 @@ export default function OptimizedUnifiedCrmPreview() {
     setAgentQuickAdd({
       name: "",
       phone: "",
+      email: "",
       market: "",
       type: "Agent",
       notes: "",
@@ -965,6 +1344,86 @@ export default function OptimizedUnifiedCrmPreview() {
       customFollowUp: "",
       showCalendar: false,
     });
+  };
+
+  const openAgentEditor = (agent: Agent) => {
+    setEditingAgentId(agent.id);
+    setAgentEditForm({
+      name: agent.name,
+      phone: agent.phone,
+      email: agent.email,
+      market: agent.market,
+      type: agent.type,
+      nextFollowUp: agent.nextFollowUp ?? "",
+      notes: agent.notes,
+      autoFollowUp: agent.autoFollowUp,
+    });
+  };
+
+  const saveAgentEdit = () => {
+    if (!editingAgentId || !agentEditForm) return;
+    updateAgent(editingAgentId, {
+      name: agentEditForm.name.trim() || "New Agent",
+      phone: agentEditForm.phone.trim(),
+      email: agentEditForm.email.trim(),
+      market: agentEditForm.market.trim() || "Unknown market",
+      type: agentEditForm.type,
+      nextFollowUp: agentEditForm.nextFollowUp || null,
+      notes: agentEditForm.notes.trim(),
+      autoFollowUp: agentEditForm.autoFollowUp,
+    });
+    setEditingAgentId(null);
+    setAgentEditForm(null);
+  };
+
+  const importAgents = () => {
+    const rows = splitImportRows(agentMassInput);
+    if (rows.length === 0) return;
+
+    let added = 0;
+    let duplicates = 0;
+    const review: string[] = [];
+    const newAgents: Agent[] = [];
+    const today = getTodayDate();
+
+    rows.forEach((row, index) => {
+      const parsed = parseAgentImportRow(row);
+      const candidate: Agent = {
+        id: nextSequence(),
+        name: parsed.name,
+        phone: parsed.phone,
+        email: parsed.email,
+        market: parsed.market,
+        type: parsed.type,
+        nextFollowUp: parsed.explicitFollowUp || addDays(today, 10),
+        lastContactedAt: null,
+        addedAt: today,
+        notes:
+          [parsed.notes, parsed.review.length > 0 ? `Needs review: ${parsed.review.join(", ")}` : ""]
+            .filter(Boolean)
+            .join(" | ") || "Mass imported contact.",
+        autoFollowUp: !parsed.explicitFollowUp,
+      };
+
+      if (dedupeAgents([...agents, ...newAgents], candidate)) {
+        duplicates += 1;
+        return;
+      }
+
+      if (parsed.review.length > 0) {
+        review.push(`Row ${index + 1}: ${parsed.review.join(", ")}`);
+      }
+
+      newAgents.push(candidate);
+      added += 1;
+    });
+
+    if (newAgents.length > 0) {
+      setAgents((curr) => [...curr, ...newAgents]);
+    }
+
+    setAgentImportSummary({ added, duplicates, review });
+    setAgentMassInput("");
   };
 
   const timeline = buildTimeline(selectedLead);
@@ -1288,7 +1747,7 @@ export default function OptimizedUnifiedCrmPreview() {
                       placeholder="Property address"
                       className={`rounded-2xl ${inputTheme}`}
                     />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         value={preQuickAdd.phone}
                         onChange={(event) =>
@@ -1297,6 +1756,16 @@ export default function OptimizedUnifiedCrmPreview() {
                         placeholder="Phone number"
                         className={`rounded-2xl ${inputTheme}`}
                       />
+                      <Input
+                        value={preQuickAdd.email}
+                        onChange={(event) =>
+                          setPreQuickAdd((curr) => ({ ...curr, email: event.target.value }))
+                        }
+                        placeholder="Email"
+                        className={`rounded-2xl ${inputTheme}`}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         value={preQuickAdd.county}
                         onChange={(event) =>
@@ -1391,6 +1860,42 @@ export default function OptimizedUnifiedCrmPreview() {
                     <Button className="w-full rounded-2xl" onClick={addPreLead}>
                       Add Lead
                     </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+                  <CardHeader>
+                    <CardTitle>Mass Quick Add Leads</CardTitle>
+                    <p className={`text-sm ${mutedText}`}>
+                      Paste one lead per line, CSV rows, or spreadsheet rows. Unclear fields are
+                      moved into notes or flagged for review.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <textarea
+                      value={leadMassInput}
+                      onChange={(event) => setLeadMassInput(event.target.value)}
+                      className={`min-h-[150px] w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
+                      placeholder="Anthony Reed, 313-555-4001, anthony@email.com, 1809 Clover Ave Detroit MI, Wayne County, 2026-05-03, Vacant house"
+                    />
+                    <Button className="w-full rounded-2xl" onClick={importPreLeads}>
+                      Mass Quick Add
+                    </Button>
+                    {leadImportSummary && (
+                      <div className={`rounded-2xl border p-3 text-sm ${softPanel}`}>
+                        <div className="font-medium">
+                          Added {leadImportSummary.added} • Duplicates skipped {leadImportSummary.duplicates}
+                          {" "}• Needs review {leadImportSummary.review.length}
+                        </div>
+                        {leadImportSummary.review.length > 0 && (
+                          <div className={`mt-2 space-y-1 text-xs ${mutedText}`}>
+                            {leadImportSummary.review.slice(0, 5).map((item) => (
+                              <div key={item}>{item}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -1565,13 +2070,21 @@ export default function OptimizedUnifiedCrmPreview() {
                       {selectedLead.manualOverrideStage && (
                         <span className="text-xs font-medium text-indigo-500">Manual override</span>
                       )}
+                      <Button
+                        variant="outline"
+                        className={`rounded-2xl ${outlineTheme}`}
+                        onClick={() => openLeadEditor(selectedLead)}
+                      >
+                        Edit Info
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     {[
                       { label: "Phone", value: selectedLead.phone || "No phone" },
+                      { label: "Email", value: selectedLead.email || "No email" },
                       { label: "Next Follow-Up", value: dueLabel(selectedLead.nextFollowUp) },
                       { label: "Calls", value: `${selectedLead.calls}` },
                       { label: "Status", value: selectedLead.status },
@@ -1635,11 +2148,11 @@ export default function OptimizedUnifiedCrmPreview() {
                     placeholder="Add notes here..."
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {selectedLead.phone ? (
                       <a
                         href={`tel:${selectedLead.phone}`}
-                        className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm ${outlineTheme}`}
+                        className={`pressable inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm ${outlineTheme}`}
                       >
                         <Phone className="mr-2 h-4 w-4" />
                         Call
@@ -1672,6 +2185,19 @@ export default function OptimizedUnifiedCrmPreview() {
                       <Mail className="mr-2 h-4 w-4" />
                       Texted
                     </Button>
+                    {selectedLead.email ? (
+                      <a
+                        href={`mailto:${selectedLead.email}`}
+                        className={`pressable inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm ${outlineTheme}`}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Email
+                      </a>
+                    ) : (
+                      <Button variant="outline" disabled className="rounded-2xl">
+                        No Email
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       className={`rounded-2xl ${outlineTheme}`}
@@ -1693,6 +2219,13 @@ export default function OptimizedUnifiedCrmPreview() {
                       Due Today
                     </Button>
                     <Button
+                      variant="outline"
+                      className={`rounded-2xl ${outlineTheme}`}
+                      onClick={() => openLeadEditor(selectedLead)}
+                    >
+                      Edit Info
+                    </Button>
+                    <Button
                       className="rounded-2xl"
                       onClick={() =>
                         updateLead(selectedLead.id, {
@@ -1706,7 +2239,7 @@ export default function OptimizedUnifiedCrmPreview() {
                     </Button>
                     <Button
                       variant="outline"
-                      className={`col-span-2 rounded-2xl ${outlineTheme}`}
+                      className={`rounded-2xl sm:col-span-2 ${outlineTheme}`}
                       onClick={() => deleteLead(selectedLead.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
@@ -1815,6 +2348,9 @@ export default function OptimizedUnifiedCrmPreview() {
                             <div className={`text-sm ${mutedText}`}>
                               {agent.type} • {agent.market}
                             </div>
+                            <div className={`text-sm ${mutedText}`}>
+                              {agent.phone || "No phone"} {agent.email ? `• ${agent.email}` : ""}
+                            </div>
                             <div className="flex flex-wrap gap-2 text-xs">
                               <span className={`rounded-full px-3 py-1 ${softPanel}`}>
                                 Added {formatDate(agent.addedAt)}
@@ -1838,6 +2374,26 @@ export default function OptimizedUnifiedCrmPreview() {
                                 <Mail className="h-4 w-4" />
                                 Text
                               </a>
+                              {agent.email ? (
+                                <a
+                                  href={`mailto:${agent.email}`}
+                                  className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium ${outlineTheme}`}
+                                >
+                                  <Mail className="h-4 w-4" />
+                                  Email
+                                </a>
+                              ) : (
+                                <Button variant="outline" disabled className="w-full rounded-2xl">
+                                  No Email
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                className={`w-full rounded-2xl ${outlineTheme}`}
+                                onClick={() => openAgentEditor(agent)}
+                              >
+                                Edit Info
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1880,6 +2436,16 @@ export default function OptimizedUnifiedCrmPreview() {
                         placeholder="Phone"
                         className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
                       />
+                      <Input
+                        value={agentQuickAdd.email}
+                        onChange={(event) =>
+                          setAgentQuickAdd((curr) => ({ ...curr, email: event.target.value }))
+                        }
+                        placeholder="Email"
+                        className={`w-full min-w-0 max-w-full rounded-2xl ${inputTheme}`}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         value={agentQuickAdd.market}
                         onChange={(event) =>
@@ -1964,6 +2530,42 @@ export default function OptimizedUnifiedCrmPreview() {
                     <Button className="w-full max-w-full rounded-2xl" onClick={addAgent}>
                       Add Agent
                     </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle>Mass Quick Add Agents</CardTitle>
+                    <p className={`text-sm ${mutedText}`}>
+                      Paste one contact per line, CSV rows, or spreadsheet rows. Name, phone, email,
+                      market, and notes are auto-detected with fallback review notes.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+                    <textarea
+                      value={agentMassInput}
+                      onChange={(event) => setAgentMassInput(event.target.value)}
+                      className={`min-h-[150px] w-full min-w-0 max-w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
+                      placeholder="Sarah Klein, 586-555-2121, sarah@macombhomes.com, Macomb County, Sends fixer listings"
+                    />
+                    <Button className="w-full max-w-full rounded-2xl" onClick={importAgents}>
+                      Mass Quick Add
+                    </Button>
+                    {agentImportSummary && (
+                      <div className={`rounded-2xl border p-3 text-sm ${softPanel}`}>
+                        <div className="font-medium">
+                          Added {agentImportSummary.added} • Duplicates skipped {agentImportSummary.duplicates}
+                          {" "}• Needs review {agentImportSummary.review.length}
+                        </div>
+                        {agentImportSummary.review.length > 0 && (
+                          <div className={`mt-2 space-y-1 text-xs ${mutedText}`}>
+                            {agentImportSummary.review.slice(0, 5).map((item) => (
+                              <div key={item}>{item}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -2059,6 +2661,9 @@ export default function OptimizedUnifiedCrmPreview() {
                                       <div className={`text-sm ${mutedText}`}>
                                         {agent.type} • {agent.market}
                                       </div>
+                                      <div className={`break-words text-sm ${mutedText}`}>
+                                        {agent.phone || "No phone"} {agent.email ? `• ${agent.email}` : ""}
+                                      </div>
                                       <div className="break-words text-sm">{agent.notes}</div>
                                       <div className="flex flex-wrap gap-2 text-xs">
                                         <span className={`rounded-full px-3 py-1 ${softPanel}`}>
@@ -2100,6 +2705,26 @@ export default function OptimizedUnifiedCrmPreview() {
                                         <Mail className="h-4 w-4" />
                                         Text
                                       </a>
+                                      {agent.email ? (
+                                        <a
+                                          href={`mailto:${agent.email}`}
+                                          className={`pressable inline-flex w-full max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium sm:w-auto ${outlineTheme}`}
+                                        >
+                                          <Mail className="h-4 w-4" />
+                                          Email
+                                        </a>
+                                      ) : (
+                                        <Button variant="outline" disabled className="w-full rounded-2xl sm:w-auto">
+                                          No Email
+                                        </Button>
+                                      )}
+                                      <Button
+                                        variant="outline"
+                                        className={`w-full max-w-full rounded-2xl sm:w-auto ${outlineTheme}`}
+                                        onClick={() => openAgentEditor(agent)}
+                                      >
+                                        Edit Info
+                                      </Button>
                                       <Button className="w-full max-w-full rounded-2xl sm:w-auto" onClick={() => logAgentFollowUp(agent)}>
                                         Log Follow-Up
                                       </Button>
@@ -2130,6 +2755,204 @@ export default function OptimizedUnifiedCrmPreview() {
 
         {mode === "map" && (
           <MapView leads={filteredLeads} dark={theme === "dark"} />
+        )}
+
+        {leadEditForm && editingLeadId && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 sm:items-center">
+            <Card className={`w-full max-w-2xl rounded-3xl shadow-xl ${panelTheme}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Edit Lead Info</CardTitle>
+                  <Button
+                    variant="outline"
+                    className={`rounded-2xl ${outlineTheme}`}
+                    onClick={() => {
+                      setEditingLeadId(null);
+                      setLeadEditForm(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  value={leadEditForm.name}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, name: event.target.value } : curr)}
+                  placeholder="Owner name"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  value={leadEditForm.phone}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, phone: event.target.value } : curr)}
+                  placeholder="Phone"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <div className="sm:col-span-2">
+                  <Input
+                    value={leadEditForm.address}
+                    onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, address: event.target.value } : curr)}
+                    placeholder="Property address"
+                    className={`rounded-2xl ${inputTheme}`}
+                  />
+                </div>
+                <Input
+                  value={leadEditForm.email}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, email: event.target.value } : curr)}
+                  placeholder="Email"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  value={leadEditForm.county}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, county: event.target.value } : curr)}
+                  placeholder="County"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  type="date"
+                  value={leadEditForm.auctionDate}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, auctionDate: event.target.value } : curr)}
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  type="date"
+                  value={leadEditForm.nextFollowUp}
+                  onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, nextFollowUp: event.target.value } : curr)}
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <label className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm ${softPanel}`}>
+                  <Switch
+                    checked={leadEditForm.postponed}
+                    onCheckedChange={(checked) => setLeadEditForm((curr) => curr ? { ...curr, postponed: checked } : curr)}
+                  />
+                  Mark as postponed
+                </label>
+                <div className="sm:col-span-2">
+                  <textarea
+                    value={leadEditForm.notes}
+                    onChange={(event) => setLeadEditForm((curr) => curr ? { ...curr, notes: event.target.value } : curr)}
+                    className={`min-h-[120px] w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
+                    placeholder="Notes"
+                  />
+                </div>
+                <div className="sm:col-span-2 grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full rounded-2xl" onClick={saveLeadEdit}>
+                    Save Changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className={`w-full rounded-2xl ${outlineTheme}`}
+                    onClick={() => {
+                      setEditingLeadId(null);
+                      setLeadEditForm(null);
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {agentEditForm && editingAgentId && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 sm:items-center">
+            <Card className={`w-full max-w-2xl rounded-3xl shadow-xl ${panelTheme}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Edit Agent Info</CardTitle>
+                  <Button
+                    variant="outline"
+                    className={`rounded-2xl ${outlineTheme}`}
+                    onClick={() => {
+                      setEditingAgentId(null);
+                      setAgentEditForm(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  value={agentEditForm.name}
+                  onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, name: event.target.value } : curr)}
+                  placeholder="Agent name"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  value={agentEditForm.phone}
+                  onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, phone: event.target.value } : curr)}
+                  placeholder="Phone"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  value={agentEditForm.email}
+                  onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, email: event.target.value } : curr)}
+                  placeholder="Email"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <Input
+                  value={agentEditForm.market}
+                  onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, market: event.target.value } : curr)}
+                  placeholder="County / market"
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <div className={`rounded-2xl border px-3 py-2 ${inputTheme}`}>
+                  <label className={`mb-2 block text-xs uppercase tracking-[0.16em] ${mutedText}`}>
+                    Contact type
+                  </label>
+                  <select
+                    value={agentEditForm.type}
+                    onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, type: event.target.value } : curr)}
+                    className={`w-full bg-transparent text-sm outline-none ${theme === "dark" ? "text-zinc-100" : "text-zinc-950"}`}
+                  >
+                    {["Agent", "Wholesaler", "Investor", "Lender"].map((option) => (
+                      <option key={option} value={option} className="text-zinc-950">
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  type="date"
+                  value={agentEditForm.nextFollowUp}
+                  onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, nextFollowUp: event.target.value } : curr)}
+                  className={`rounded-2xl ${inputTheme}`}
+                />
+                <label className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm ${softPanel}`}>
+                  <Switch
+                    checked={agentEditForm.autoFollowUp}
+                    onCheckedChange={(checked) => setAgentEditForm((curr) => curr ? { ...curr, autoFollowUp: checked } : curr)}
+                  />
+                  Automatic 10-day follow-up
+                </label>
+                <div className="sm:col-span-2">
+                  <textarea
+                    value={agentEditForm.notes}
+                    onChange={(event) => setAgentEditForm((curr) => curr ? { ...curr, notes: event.target.value } : curr)}
+                    className={`min-h-[120px] w-full rounded-2xl border p-3 text-sm ${inputTheme}`}
+                    placeholder="Notes"
+                  />
+                </div>
+                <div className="sm:col-span-2 grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full rounded-2xl" onClick={saveAgentEdit}>
+                    Save Changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className={`w-full rounded-2xl ${outlineTheme}`}
+                    onClick={() => {
+                      setEditingAgentId(null);
+                      setAgentEditForm(null);
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>
