@@ -8,6 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { getSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase-browser";
+import {
+  archiveAgentCloud,
+  archiveLeadCloud,
+  loadCloudSyncData,
+  restoreAgentCloud,
+  restoreLeadCloud,
+  saveAgentCloud,
+  saveLeadCloud,
+  saveSettingsCloud,
+} from "@/lib/cloud-crm";
 import {
   AlertTriangle,
   Bell,
@@ -759,15 +770,19 @@ function parseLeadImportRow(row: string) {
 }
 
 export default function OptimizedUnifiedCrmPreview() {
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const hasCloud = useMemo(() => hasSupabaseBrowserEnv() && Boolean(supabase), [supabase]);
   const [mode, setMode] = useState<DashboardMode>("pre");
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return "light";
     const stored = window.localStorage.getItem("unified-crm-theme");
     return stored === "dark" || stored === "light" ? stored : "light";
   });
-  const [leads, setLeads] = useState<Lead[]>(startingLeads);
-  const [agents, setAgents] = useState<Agent[]>(startingAgents);
-  const [selectedLeadId, setSelectedLeadId] = useState<number>(startingLeads[0].id);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [deletedLeads, setDeletedLeads] = useState<Lead[]>([]);
+  const [deletedAgents, setDeletedAgents] = useState<Agent[]>([]);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [draggedLeadId, setDraggedLeadId] = useState<number | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | null>(null);
@@ -818,6 +833,10 @@ export default function OptimizedUnifiedCrmPreview() {
   const [leadEditForm, setLeadEditForm] = useState<LeadEditForm | null>(null);
   const [editingAgentId, setEditingAgentId] = useState<number | null>(null);
   const [agentEditForm, setAgentEditForm] = useState<AgentEditForm | null>(null);
+  const [syncState, setSyncState] = useState<"loading" | "saving" | "saved" | "error" | "demo">(
+    hasCloud ? "loading" : "demo",
+  );
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const sequenceRef = useRef(1000);
   const leadDetailRef = useRef<HTMLDivElement | null>(null);
 
@@ -830,8 +849,160 @@ export default function OptimizedUnifiedCrmPreview() {
     window.localStorage.setItem("unified-crm-theme", theme);
   }, [theme]);
 
-  const selectedLead =
-    leads.find((lead) => lead.id === selectedLeadId) ?? leads[0] ?? startingLeads[0];
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      if (!supabase || !hasCloud) {
+        if (!active) return;
+        setLeads(startingLeads);
+        setAgents(startingAgents);
+        setDeletedLeads([]);
+        setDeletedAgents([]);
+        setSelectedLeadId(startingLeads[0]?.id ?? null);
+        setSyncState("demo");
+        setSyncMessage("Demo Mode — data may reset.");
+        return;
+      }
+
+      try {
+        setSyncState("loading");
+        const payload = await loadCloudSyncData(supabase);
+        if (!active) return;
+
+        const nextLeads = payload.leads;
+        const nextAgents = payload.agents;
+
+        setLeads(nextLeads);
+        setAgents(nextAgents);
+        setDeletedLeads(payload.deletedLeads);
+        setDeletedAgents(payload.deletedAgents);
+        setSelectedLeadId(nextLeads[0]?.id ?? null);
+
+        if (payload.settings?.theme === "dark" || payload.settings?.theme === "light") {
+          setTheme(payload.settings.theme);
+        }
+        if (payload.settings?.mode === "agents" || payload.settings?.mode === "pre" || payload.settings?.mode === "map") {
+          setMode(payload.settings.mode);
+        }
+        if (typeof payload.settings?.search === "string") setSearch(payload.settings.search);
+        if (payload.settings?.agentSortBy === "alphabetical" || payload.settings?.agentSortBy === "recent" || payload.settings?.agentSortBy === "market") {
+          setAgentSortBy(payload.settings.agentSortBy);
+        }
+        if (typeof payload.settings?.agentMarketFilter === "string") setAgentMarketFilter(payload.settings.agentMarketFilter);
+        if (payload.settings?.agentMetricFilter === null || typeof payload.settings?.agentMetricFilter === "string") {
+          setAgentMetricFilter((payload.settings.agentMetricFilter as AgentMetricFilter) ?? null);
+        }
+        if (payload.settings?.agentMetricSortBy === "alphabetical" || payload.settings?.agentMetricSortBy === "recent") {
+          setAgentMetricSortBy(payload.settings.agentMetricSortBy);
+        }
+        if (typeof payload.settings?.agentMetricMarketFilter === "string") setAgentMetricMarketFilter(payload.settings.agentMetricMarketFilter);
+        if (payload.settings?.preMetricFilter === null || typeof payload.settings?.preMetricFilter === "string") {
+          setPreMetricFilter((payload.settings.preMetricFilter as PreMetricFilter) ?? null);
+        }
+        if (payload.settings?.preMetricSortBy === "alphabetical" || payload.settings?.preMetricSortBy === "recent") {
+          setPreMetricSortBy(payload.settings.preMetricSortBy);
+        }
+        if (typeof payload.settings?.preMetricCountyFilter === "string") setPreMetricCountyFilter(payload.settings.preMetricCountyFilter);
+
+        setSyncState("saved");
+        setSyncMessage("Cloud Sync On");
+      } catch (error) {
+        if (!active) return;
+        setLeads(startingLeads);
+        setAgents(startingAgents);
+        setDeletedLeads([]);
+        setDeletedAgents([]);
+        setSelectedLeadId(startingLeads[0]?.id ?? null);
+        setSyncState("error");
+        setSyncMessage(error instanceof Error ? error.message : "Could not load Supabase data.");
+      }
+    }
+
+    void loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [hasCloud, supabase]);
+
+  useEffect(() => {
+    if (!supabase || !hasCloud) return;
+
+    const channel = supabase
+      .channel("crm-live-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, async () => {
+        const payload = await loadCloudSyncData(supabase);
+        setAgents(payload.agents);
+        setDeletedAgents(payload.deletedAgents);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "preforeclosure_leads" }, async () => {
+        const payload = await loadCloudSyncData(supabase);
+        setLeads(payload.leads);
+        setDeletedLeads(payload.deletedLeads);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "deleted_agents" }, async () => {
+        const payload = await loadCloudSyncData(supabase);
+        setDeletedAgents(payload.deletedAgents);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "deleted_leads" }, async () => {
+        const payload = await loadCloudSyncData(supabase);
+        setDeletedLeads(payload.deletedLeads);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_settings" }, async () => {
+        const payload = await loadCloudSyncData(supabase);
+        if (payload.settings?.theme === "dark" || payload.settings?.theme === "light") {
+          setTheme(payload.settings.theme);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [hasCloud, supabase]);
+
+  useEffect(() => {
+    if (!supabase || !hasCloud || syncState === "loading") return;
+
+    const timeout = window.setTimeout(() => {
+      void saveSettingsCloud(supabase, {
+        theme,
+        mode,
+        search,
+        agentSortBy,
+        agentMarketFilter,
+        agentMetricFilter,
+        agentMetricSortBy,
+        agentMetricMarketFilter,
+        preMetricFilter,
+        preMetricSortBy,
+        preMetricCountyFilter,
+      }).catch((error) => {
+        setSyncState("error");
+        setSyncMessage(error instanceof Error ? error.message : "Could not save settings.");
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    agentMarketFilter,
+    agentMetricFilter,
+    agentMetricMarketFilter,
+    agentMetricSortBy,
+    agentSortBy,
+    hasCloud,
+    mode,
+    preMetricCountyFilter,
+    preMetricFilter,
+    preMetricSortBy,
+    search,
+    supabase,
+    syncState,
+    theme,
+  ]);
+
+  const selectedLead = leads.find((lead) => lead.id === selectedLeadId) ?? leads[0] ?? null;
 
   const filteredLeads = useMemo(() => {
     const q = search.toLowerCase();
@@ -1040,8 +1211,49 @@ export default function OptimizedUnifiedCrmPreview() {
       ? "border-white/10 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
       : "bg-white";
 
+  const syncSavedState = () => {
+    setSyncState("saved");
+    setSyncMessage("Cloud Sync On");
+  };
+
+  const syncCloudError = (error: unknown) => {
+    setSyncState("error");
+    setSyncMessage(error instanceof Error ? error.message : "Cloud sync failed.");
+  };
+
+  const persistLeadRecord = async (lead: Lead) => {
+    if (!supabase || !hasCloud) return;
+    setSyncState("saving");
+    setSyncMessage("Saving to cloud…");
+    try {
+      await saveLeadCloud(supabase, lead);
+      syncSavedState();
+    } catch (error) {
+      syncCloudError(error);
+    }
+  };
+
+  const persistAgentRecord = async (agent: Agent) => {
+    if (!supabase || !hasCloud) return;
+    setSyncState("saving");
+    setSyncMessage("Saving to cloud…");
+    try {
+      await saveAgentCloud(supabase, agent);
+      syncSavedState();
+    } catch (error) {
+      syncCloudError(error);
+    }
+  };
+
   const updateLead = (id: number, patch: Partial<Lead>) => {
-    setLeads((curr) => curr.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)));
+    setLeads((curr) => {
+      const next = curr.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead));
+      const updated = next.find((lead) => lead.id === id);
+      if (updated) {
+        void persistLeadRecord(updated);
+      }
+      return next;
+    });
   };
 
   const handleDrop = (stage: string) => {
@@ -1096,6 +1308,7 @@ export default function OptimizedUnifiedCrmPreview() {
     setLeads((curr) => [newLead, ...curr]);
     setSelectedLeadId(newLead.id);
     setNewAddress("");
+    void persistLeadRecord(newLead);
   };
 
   const addPreLead = () => {
@@ -1154,19 +1367,35 @@ export default function OptimizedUnifiedCrmPreview() {
       customFollowUp: "",
       showCalendar: false,
     });
+    void persistLeadRecord(newLead);
   };
 
   const deleteLead = (id: number) => {
+    const lead = leads.find((item) => item.id === id);
+    if (!lead) return;
+
     setLeads((curr) => {
-      const next = curr.filter((lead) => lead.id !== id);
+      const next = curr.filter((item) => item.id !== id);
       if (next.length > 0 && selectedLeadId === id) {
         setSelectedLeadId(next[0].id);
       }
+      if (next.length === 0) {
+        setSelectedLeadId(null);
+      }
       return next;
     });
+    setDeletedLeads((curr) => [lead, ...curr]);
+    if (supabase && hasCloud) {
+      setSyncState("saving");
+      setSyncMessage("Deleting from cloud…");
+      void archiveLeadCloud(supabase, lead)
+        .then(() => syncSavedState())
+        .catch((error) => syncCloudError(error));
+    }
   };
 
   const applyCallResult = (result: string) => {
+    if (!selectedLead) return;
     const today = getTodayDate();
     const nextDate = scheduleFollowUp(result, today);
     const remainingFollowUps = selectedLead.followUps.filter((dot) => dot.date !== selectedLead.nextFollowUp);
@@ -1188,6 +1417,7 @@ export default function OptimizedUnifiedCrmPreview() {
   };
 
   const updateLeadTimelineDate = (dateValue: string) => {
+    if (!selectedLead) return;
     const followUps = selectedLead.followUps.filter((dot) => dot.label !== "Custom follow-up");
     updateLead(selectedLead.id, {
       nextFollowUp: dateValue,
@@ -1199,7 +1429,14 @@ export default function OptimizedUnifiedCrmPreview() {
   };
 
   const updateAgent = (id: number, patch: Partial<Agent>) => {
-    setAgents((curr) => curr.map((agent) => (agent.id === id ? { ...agent, ...patch } : agent)));
+    setAgents((curr) => {
+      const next = curr.map((agent) => (agent.id === id ? { ...agent, ...patch } : agent));
+      const updated = next.find((agent) => agent.id === id);
+      if (updated) {
+        void persistAgentRecord(updated);
+      }
+      return next;
+    });
   };
 
   const openLeadEditor = (lead: Lead) => {
@@ -1300,6 +1537,9 @@ export default function OptimizedUnifiedCrmPreview() {
     if (newLeads.length > 0) {
       setLeads((curr) => [...newLeads, ...curr]);
       setSelectedLeadId(newLeads[0].id);
+      newLeads.forEach((lead) => {
+        void persistLeadRecord(lead);
+      });
     }
 
     setLeadImportSummary({ added, duplicates, review });
@@ -1344,6 +1584,7 @@ export default function OptimizedUnifiedCrmPreview() {
       customFollowUp: "",
       showCalendar: false,
     });
+    void persistAgentRecord(newAgent);
   };
 
   const openAgentEditor = (agent: Agent) => {
@@ -1420,13 +1661,55 @@ export default function OptimizedUnifiedCrmPreview() {
 
     if (newAgents.length > 0) {
       setAgents((curr) => [...curr, ...newAgents]);
+      newAgents.forEach((agent) => {
+        void persistAgentRecord(agent);
+      });
     }
 
     setAgentImportSummary({ added, duplicates, review });
     setAgentMassInput("");
   };
 
-  const timeline = buildTimeline(selectedLead);
+  const deleteAgent = (id: number) => {
+    const agent = agents.find((item) => item.id === id);
+    if (!agent) return;
+    setAgents((curr) => curr.filter((item) => item.id !== id));
+    setDeletedAgents((curr) => [agent, ...curr]);
+    if (supabase && hasCloud) {
+      setSyncState("saving");
+      setSyncMessage("Deleting from cloud…");
+      void archiveAgentCloud(supabase, agent)
+        .then(() => syncSavedState())
+        .catch((error) => syncCloudError(error));
+    }
+  };
+
+  const restoreLead = (lead: Lead) => {
+    setDeletedLeads((curr) => curr.filter((item) => item.id !== lead.id));
+    setLeads((curr) => [lead, ...curr]);
+    setSelectedLeadId(lead.id);
+    if (supabase && hasCloud) {
+      setSyncState("saving");
+      setSyncMessage("Restoring from cloud…");
+      void restoreLeadCloud(supabase, lead)
+        .then(() => syncSavedState())
+        .catch((error) => syncCloudError(error));
+    }
+  };
+
+  const restoreAgent = (agent: Agent) => {
+    setDeletedAgents((curr) => curr.filter((item) => item.id !== agent.id));
+    setAgents((curr) => [agent, ...curr]);
+    if (supabase && hasCloud) {
+      setSyncState("saving");
+      setSyncMessage("Restoring from cloud…");
+      void restoreAgentCloud(supabase, agent)
+        .then(() => syncSavedState())
+        .catch((error) => syncCloudError(error));
+    }
+  };
+
+  const timeline = selectedLead ? buildTimeline(selectedLead) : null;
 
   return (
     <div className={pageTheme}>
@@ -1525,6 +1808,27 @@ export default function OptimizedUnifiedCrmPreview() {
               className={`h-12 rounded-2xl pl-10 ${inputTheme}`}
             />
           </div>
+        </div>
+
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            syncState === "error"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : syncState === "demo"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          <span className="font-semibold">
+            {syncState === "demo" ? "Demo Mode — data may reset." : "Cloud Sync On"}
+          </span>
+          <span className="ml-2">
+            {syncState === "loading" && "Loading cloud data…"}
+            {syncState === "saving" && "Saving changes…"}
+            {syncState === "saved" && (syncMessage ?? "All changes are stored in Supabase and sync live across devices.")}
+            {syncState === "error" && (syncMessage ?? "Supabase is unavailable.")}
+            {syncState === "demo" && (syncMessage ?? "Connect Supabase env vars to persist data across devices and deployments.")}
+          </span>
         </div>
 
         {mode === "pre" && (
@@ -1898,6 +2202,30 @@ export default function OptimizedUnifiedCrmPreview() {
                     )}
                   </CardContent>
                 </Card>
+
+                {deletedLeads.length > 0 && (
+                  <Card className={`rounded-3xl shadow-sm ${panelTheme}`}>
+                    <CardHeader>
+                      <CardTitle>Recently Deleted Leads</CardTitle>
+                      <p className={`text-sm ${mutedText}`}>Restore archived leads from any device.</p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {deletedLeads.slice(0, 5).map((lead) => (
+                        <div key={lead.id} className={`rounded-2xl border p-3 ${softPanel}`}>
+                          <div className="font-medium">{lead.name}</div>
+                          <div className={`text-sm ${mutedText}`}>{lead.address}</div>
+                          <Button
+                            variant="outline"
+                            className={`mt-3 w-full rounded-2xl ${outlineTheme}`}
+                            onClick={() => restoreLead(lead)}
+                          >
+                            Restore Lead
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <Card className={`order-3 rounded-3xl shadow-sm xl:order-2 ${panelTheme}`}>
@@ -2013,6 +2341,8 @@ export default function OptimizedUnifiedCrmPreview() {
                     : "ring-blue-200 ring-offset-zinc-100"
                 } xl:sticky xl:top-5 ${panelTheme}`}
               >
+                {selectedLead && timeline ? (
+                <>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -2247,6 +2577,14 @@ export default function OptimizedUnifiedCrmPreview() {
                     </Button>
                   </div>
                 </CardContent>
+                </>
+                ) : (
+                  <CardContent className="p-6 text-sm">
+                    <div className={mutedText}>
+                      No preforeclosure lead selected yet. Add a lead or connect Supabase to begin syncing records.
+                    </div>
+                  </CardContent>
+                )}
               </Card>
               </div>
             </div>
@@ -2569,6 +2907,30 @@ export default function OptimizedUnifiedCrmPreview() {
                   </CardContent>
                 </Card>
 
+                {deletedAgents.length > 0 && (
+                  <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle>Recently Deleted Agents</CardTitle>
+                      <p className={`text-sm ${mutedText}`}>Restore archived contacts with one tap.</p>
+                    </CardHeader>
+                    <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+                      {deletedAgents.slice(0, 5).map((agent) => (
+                        <div key={agent.id} className={`rounded-2xl border p-3 ${softPanel}`}>
+                          <div className="font-medium">{agent.name}</div>
+                          <div className={`text-sm ${mutedText}`}>{agent.market}</div>
+                          <Button
+                            variant="outline"
+                            className={`mt-3 w-full rounded-2xl ${outlineTheme}`}
+                            onClick={() => restoreAgent(agent)}
+                          >
+                            Restore Agent
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
               </div>
 
               <Card className={`w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-sm ${panelTheme}`}>
@@ -2731,9 +3093,7 @@ export default function OptimizedUnifiedCrmPreview() {
                                       <Button
                                         variant="outline"
                                         className={`w-full max-w-full rounded-2xl sm:w-auto ${outlineTheme}`}
-                                        onClick={() =>
-                                          setAgents((curr) => curr.filter((item) => item.id !== agent.id))
-                                        }
+                                        onClick={() => deleteAgent(agent.id)}
                                       >
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Delete

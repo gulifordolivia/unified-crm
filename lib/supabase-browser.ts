@@ -31,3 +31,7 @@ export function getSupabaseBrowserClient() {
 
   return browserClient;
 }
+
+export function hasSupabaseBrowserEnv() {
+  return Boolean(getBrowserEnv());
+}
