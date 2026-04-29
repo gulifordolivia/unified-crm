@@ -12,6 +12,7 @@ import { getSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase-
 import {
   archiveAgentCloud,
   archiveLeadCloud,
+  formatSupabaseError,
   loadCloudSyncData,
   restoreAgentCloud,
   restoreLeadCloud,
@@ -915,7 +916,7 @@ export default function OptimizedUnifiedCrmPreview() {
         setDeletedAgents([]);
         setSelectedLeadId(startingLeads[0]?.id ?? null);
         setSyncState("error");
-        setSyncMessage(error instanceof Error ? error.message : "Could not load Supabase data.");
+        setSyncMessage(formatSupabaseError(error));
       }
     }
 
@@ -949,7 +950,7 @@ export default function OptimizedUnifiedCrmPreview() {
         const payload = await loadCloudSyncData(supabase);
         setDeletedLeads(payload.deletedLeads);
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_settings" }, async () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, async () => {
         const payload = await loadCloudSyncData(supabase);
         if (payload.settings?.theme === "dark" || payload.settings?.theme === "light") {
           setTheme(payload.settings.theme);
@@ -980,7 +981,7 @@ export default function OptimizedUnifiedCrmPreview() {
         preMetricCountyFilter,
       }).catch((error) => {
         setSyncState("error");
-        setSyncMessage(error instanceof Error ? error.message : "Could not save settings.");
+        setSyncMessage(formatSupabaseError(error));
       });
     }, 250);
 
@@ -1218,7 +1219,7 @@ export default function OptimizedUnifiedCrmPreview() {
 
   const syncCloudError = (error: unknown) => {
     setSyncState("error");
-    setSyncMessage(error instanceof Error ? error.message : "Cloud sync failed.");
+    setSyncMessage(formatSupabaseError(error));
   };
 
   const persistLeadRecord = async (lead: Lead) => {

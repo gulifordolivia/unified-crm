@@ -2,6 +2,20 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+const TABLES = {
+  agents: "agents",
+  leads: "preforeclosure_leads",
+  deletedAgents: "deleted_agents",
+  deletedLeads: "deleted_leads",
+  notes: "notes",
+  followUpDates: "follow_up_dates",
+  callTextCounts: "call_text_counts",
+  statuses: "statuses",
+  mapCoordinates: "map_coordinates",
+  timelineEvents: "timeline_events",
+  settings: "settings",
+} as const;
+
 export type CloudLead = {
   id: number;
   name: string;
@@ -64,6 +78,28 @@ type SyncPayload = {
   settings: CloudSettings | null;
 };
 
+export function formatSupabaseError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return "Unknown Supabase error.";
+  }
+
+  const maybeError = error as {
+    message?: string;
+    details?: string;
+    hint?: string;
+    code?: string;
+  };
+
+  const parts = [
+    maybeError.message,
+    maybeError.details ? `Details: ${maybeError.details}` : null,
+    maybeError.hint ? `Hint: ${maybeError.hint}` : null,
+    maybeError.code ? `Code: ${maybeError.code}` : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" | ") : "Unknown Supabase error.";
+}
+
 function mapLeadRow(row: Record<string, unknown>): CloudLead {
   return {
     id: Number(row.id),
@@ -114,11 +150,11 @@ function mapAgentRow(row: Record<string, unknown>): CloudAgent {
 export async function loadCloudSyncData(supabase: SupabaseClient): Promise<SyncPayload> {
   const [agentsResponse, leadsResponse, deletedAgentsResponse, deletedLeadsResponse, settingsResponse] =
     await Promise.all([
-      supabase.from("agents").select("*").order("name"),
-      supabase.from("preforeclosure_leads").select("*").order("manual_rank", { ascending: false }),
-      supabase.from("deleted_agents").select("payload").order("deleted_at", { ascending: false }),
-      supabase.from("deleted_leads").select("payload").order("deleted_at", { ascending: false }),
-      supabase.from("user_settings").select("settings").eq("id", "dashboard").maybeSingle(),
+      supabase.from(TABLES.agents).select("*").order("name"),
+      supabase.from(TABLES.leads).select("*").order("manual_rank", { ascending: false }),
+      supabase.from(TABLES.deletedAgents).select("payload").order("deleted_at", { ascending: false }),
+      supabase.from(TABLES.deletedLeads).select("payload").order("deleted_at", { ascending: false }),
+      supabase.from(TABLES.settings).select("settings").eq("id", "dashboard").maybeSingle(),
     ]);
 
   if (agentsResponse.error) throw agentsResponse.error;
@@ -157,17 +193,17 @@ export async function saveAgentCloud(supabase: SupabaseClient, agent: CloudAgent
     auto_follow_up: agent.autoFollowUp,
   };
 
-  const { error } = await supabase.from("agents").upsert(payload);
+  const { error } = await supabase.from(TABLES.agents).upsert(payload);
   if (error) throw error;
 
   await Promise.all([
-    supabase.from("notes").upsert({
+    supabase.from(TABLES.notes).upsert({
       entity_type: "agent",
       entity_id: String(agent.id),
       content: agent.notes,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("follow_up_dates").upsert({
+    supabase.from(TABLES.followUpDates).upsert({
       entity_type: "agent",
       entity_id: String(agent.id),
       follow_up_date: agent.nextFollowUp,
@@ -175,20 +211,20 @@ export async function saveAgentCloud(supabase: SupabaseClient, agent: CloudAgent
       completed: false,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("call_text_counts").upsert({
+    supabase.from(TABLES.callTextCounts).upsert({
       entity_type: "agent",
       entity_id: String(agent.id),
       calls: 0,
       texts: 0,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("statuses").upsert({
+    supabase.from(TABLES.statuses).upsert({
       entity_type: "agent",
       entity_id: String(agent.id),
       status: agent.nextFollowUp ? "Active follow-up" : "No follow-up",
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("timeline_events").upsert(
+    supabase.from(TABLES.timelineEvents).upsert(
       [
         agent.lastContactedAt
           ? {
@@ -242,42 +278,42 @@ export async function saveLeadCloud(supabase: SupabaseClient, lead: CloudLead) {
     postponed: lead.postponed,
   };
 
-  const { error } = await supabase.from("preforeclosure_leads").upsert(payload);
+  const { error } = await supabase.from(TABLES.leads).upsert(payload);
   if (error) throw error;
 
   await Promise.all([
-    supabase.from("notes").upsert({
+    supabase.from(TABLES.notes).upsert({
       entity_type: "lead",
       entity_id: String(lead.id),
       content: lead.notes,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("call_text_counts").upsert({
+    supabase.from(TABLES.callTextCounts).upsert({
       entity_type: "lead",
       entity_id: String(lead.id),
       calls: lead.calls,
       texts: lead.texts,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("statuses").upsert({
+    supabase.from(TABLES.statuses).upsert({
       entity_type: "lead",
       entity_id: String(lead.id),
       status: lead.status,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("map_coordinates").upsert({
+    supabase.from(TABLES.mapCoordinates).upsert({
       entity_type: "lead",
       entity_id: String(lead.id),
       lat: lead.lat,
       lng: lead.lng,
       updated_at: new Date().toISOString(),
     }),
-    supabase.from("follow_up_dates").delete().eq("entity_type", "lead").eq("entity_id", String(lead.id)),
-    supabase.from("timeline_events").delete().eq("entity_type", "lead").eq("entity_id", String(lead.id)),
+    supabase.from(TABLES.followUpDates).delete().eq("entity_type", "lead").eq("entity_id", String(lead.id)),
+    supabase.from(TABLES.timelineEvents).delete().eq("entity_type", "lead").eq("entity_id", String(lead.id)),
   ]);
 
   if (lead.followUps.length > 0) {
-    const { error: followError } = await supabase.from("follow_up_dates").insert(
+    const { error: followError } = await supabase.from(TABLES.followUpDates).insert(
       lead.followUps.map((item) => ({
         id: item.id,
         entity_type: "lead",
@@ -318,12 +354,12 @@ export async function saveLeadCloud(supabase: SupabaseClient, lead: CloudLead) {
     },
   ];
 
-  const { error: timelineError } = await supabase.from("timeline_events").insert(timelineEvents);
+  const { error: timelineError } = await supabase.from(TABLES.timelineEvents).insert(timelineEvents);
   if (timelineError) throw timelineError;
 }
 
 export async function archiveAgentCloud(supabase: SupabaseClient, agent: CloudAgent) {
-  const { error: insertError } = await supabase.from("deleted_agents").upsert({
+  const { error: insertError } = await supabase.from(TABLES.deletedAgents).upsert({
     id: agent.id,
     name: agent.name,
     payload: agent,
@@ -331,12 +367,12 @@ export async function archiveAgentCloud(supabase: SupabaseClient, agent: CloudAg
   });
   if (insertError) throw insertError;
 
-  const { error: deleteError } = await supabase.from("agents").delete().eq("id", agent.id);
+  const { error: deleteError } = await supabase.from(TABLES.agents).delete().eq("id", agent.id);
   if (deleteError) throw deleteError;
 }
 
 export async function archiveLeadCloud(supabase: SupabaseClient, lead: CloudLead) {
-  const { error: insertError } = await supabase.from("deleted_leads").upsert({
+  const { error: insertError } = await supabase.from(TABLES.deletedLeads).upsert({
     id: lead.id,
     address: lead.address,
     payload: lead,
@@ -344,24 +380,24 @@ export async function archiveLeadCloud(supabase: SupabaseClient, lead: CloudLead
   });
   if (insertError) throw insertError;
 
-  const { error: deleteError } = await supabase.from("preforeclosure_leads").delete().eq("id", lead.id);
+  const { error: deleteError } = await supabase.from(TABLES.leads).delete().eq("id", lead.id);
   if (deleteError) throw deleteError;
 }
 
 export async function restoreAgentCloud(supabase: SupabaseClient, agent: CloudAgent) {
   await saveAgentCloud(supabase, agent);
-  const { error } = await supabase.from("deleted_agents").delete().eq("id", agent.id);
+  const { error } = await supabase.from(TABLES.deletedAgents).delete().eq("id", agent.id);
   if (error) throw error;
 }
 
 export async function restoreLeadCloud(supabase: SupabaseClient, lead: CloudLead) {
   await saveLeadCloud(supabase, lead);
-  const { error } = await supabase.from("deleted_leads").delete().eq("id", lead.id);
+  const { error } = await supabase.from(TABLES.deletedLeads).delete().eq("id", lead.id);
   if (error) throw error;
 }
 
 export async function saveSettingsCloud(supabase: SupabaseClient, settings: CloudSettings) {
-  const { error } = await supabase.from("user_settings").upsert({
+  const { error } = await supabase.from(TABLES.settings).upsert({
     id: "dashboard",
     settings,
     updated_at: new Date().toISOString(),
